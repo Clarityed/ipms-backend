@@ -1,0 +1,11 @@
+# 项目端口号
+server:
+  port: 9090
+  servlet:
+    # 接口地址请求路径固定前缀
+    context-path: /api
+
+spring:
+  application:
+    # 项目名称
+    name: ipms-backend
