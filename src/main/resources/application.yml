@@ -12,7 +12,7 @@ spring:
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ipms
+    url: jdbc:mysql://localhost:3306/ipms?useUnicode=true&characterEncoding=UTF-8&useSSL=false
     username: root
     password: admin
   # Failed to start bean ‘documentationPluginsBootstrapper
@@ -21,6 +21,9 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
+  # session 失效时间（分钟）
+  session:
+    timeout: 86400
 
 mybatis-plus:
   configuration:
