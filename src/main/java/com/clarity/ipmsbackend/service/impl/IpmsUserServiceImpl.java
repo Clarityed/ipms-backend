@@ -6,6 +6,7 @@ import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsUserMapper;
+import com.clarity.ipmsbackend.model.dto.user.AddUserRequest;
 import com.clarity.ipmsbackend.model.dto.user.UserLoginRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsUser;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
@@ -17,6 +18,7 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
 
 /**
 * @author Clarity
@@ -72,6 +74,64 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
         return (SafeUserVO) safeUser;
+    }
+
+    @Override
+    public long addUser(AddUserRequest addUserRequest, HttpServletRequest request) {
+        // 1. 校验参数信息。
+        //   - 参数是否为空
+        String userCode = addUserRequest.getUserCode();
+        String userName = addUserRequest.getUserName();
+        String userAccount = addUserRequest.getUserAccount();
+        String userPassword = addUserRequest.getUserPassword();
+        String userRole = addUserRequest.getUserRole();
+        if (StringUtils.isAnyBlank(userCode, userName, userAccount, userPassword, userRole)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        //   - 账号密码长度
+        if (userAccount.length() < 7 || userAccount.length() > 11) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号长度小于 7 或者账号长度大于 11");
+        }
+        if (userPassword.length() < 9 || userPassword.length() > 16) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度小于 9 或者密码长度大于 16");
+        }
+        //   - 用户身份只能是系统中拥有的
+        int i = 0; // 标识输入的角色是否是系统角色，是的话 + 1
+        for (String role : UserConstant.USER_ROLE_LIST) {
+            if (role.equals(userRole)) {
+                i++;
+                break;
+            }
+        }
+        if (i != 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "角色输入有误");
+        }
+        //   - 账号不能重复
+        QueryWrapper<IpmsUser> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.eq("user_account", userAccount);
+        IpmsUser user = ipmsUserMapper.selectOne(userQueryWrapper);
+        if (user != null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+        }
+        //   - 用户编号不能重复
+        userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.eq("user_code", userCode);
+        user = ipmsUserMapper.selectOne(userQueryWrapper);
+        if (user != null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户编号重复");
+        }
+        // 2. 加密密码
+        String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + userPassword).getBytes());
+        // 3. 插入数据
+        user = new IpmsUser();
+        BeanUtils.copyProperties(addUserRequest, user);
+        user.setUserPassword(encryptPassword);
+        user.setCreateTime(new Date());
+        user.setUpdateTime(new Date());
+        //   - 企业 id 绑定
+        SafeUserVO loginUser = this.getLoginUser(request);
+        user.setEnterpriseId(loginUser.getEnterpriseId());
+        return ipmsUserMapper.insert(user);
     }
 }
 

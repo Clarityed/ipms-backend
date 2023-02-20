@@ -1,5 +1,8 @@
 package com.clarity.ipmsbackend.constant;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * 用户常量
  *
@@ -72,4 +75,10 @@ public class UserConstant {
      * 仓管主管权限
      */
     public static final String STORE_ROLE_SUPER = "仓管主管";
+
+    /**
+     * 用户角色列表
+     */
+    public static final List<String> USER_ROLE_LIST = Arrays.asList("开发员", "开发主管", "销售员", "销售主管",
+            "生产员", "生产主管", "采购员", "采购主管", "仓管员", "仓管主管");
 }

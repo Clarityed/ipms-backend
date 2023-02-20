@@ -1,16 +1,17 @@
 package com.clarity.ipmsbackend.controller;
 
+import com.clarity.ipmsbackend.annotation.AuthCheck;
 import com.clarity.ipmsbackend.common.BaseResponse;
 import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.common.ResultUtils;
+import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
+import com.clarity.ipmsbackend.model.dto.user.AddUserRequest;
 import com.clarity.ipmsbackend.model.dto.user.UserLoginRequest;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -67,5 +68,16 @@ public class IpmsUserController {
         }
         SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
         return ResultUtils.success(loginUser);
+    }
+
+    @PostMapping("/addUser")
+    @ApiOperation(value = "增加用户")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Long> addUser(@RequestBody AddUserRequest addUserRequest, HttpServletRequest request) {
+        if (addUserRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        long result = ipmsUserService.addUser(addUserRequest, request);
+        return ResultUtils.success(result);
     }
 }

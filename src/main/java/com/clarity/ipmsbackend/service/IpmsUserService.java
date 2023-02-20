@@ -1,6 +1,7 @@
 package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.clarity.ipmsbackend.model.dto.user.AddUserRequest;
 import com.clarity.ipmsbackend.model.dto.user.UserLoginRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsUser;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
@@ -30,4 +31,12 @@ public interface IpmsUserService extends IService<IpmsUser> {
      * @return
      */
     SafeUserVO getLoginUser(HttpServletRequest request);
+
+    /**
+     * 创建用户
+     *
+     * @param addUserRequest
+     * @return
+     */
+    long addUser(AddUserRequest addUserRequest, HttpServletRequest request);
 }
