@@ -10,11 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import springfox.documentation.annotations.ApiIgnore;
 
 import javax.annotation.Resource;
 
 /**
- * 功能描述
+ * 企业控制器
  *
  * @author: clarity
  * @date: 2023年02月20日 9:57
@@ -28,6 +29,7 @@ public class IpmsEnterpriseController {
     @Resource
     private IpmsEnterpriseService ipmsEnterpriseService;
 
+    @ApiIgnore
     @GetMapping("/test/{id}")
     public BaseResponse<Integer> test(@PathVariable("id")int id) {
         if (id == 1) {
