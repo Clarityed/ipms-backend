@@ -1,10 +1,23 @@
 package com.clarity.ipmsbackend.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.clarity.ipmsbackend.common.ErrorCode;
+import com.clarity.ipmsbackend.exception.BusinessException;
+import com.clarity.ipmsbackend.model.dto.enterprise.UpdateEnterpriseRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
 import com.clarity.ipmsbackend.mapper.IpmsEnterpriseMapper;
+import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsEnterpriseService;
+import com.clarity.ipmsbackend.service.IpmsUserService;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
+import java.util.Date;
 
 /**
 * @author Clarity
@@ -15,6 +28,52 @@ import org.springframework.stereotype.Service;
 public class IpmsEnterpriseServiceImpl extends ServiceImpl<IpmsEnterpriseMapper, IpmsEnterprise>
     implements IpmsEnterpriseService{
 
+    @Resource
+    private IpmsEnterpriseMapper ipmsEnterpriseMapper;
+
+    @Resource
+    private IpmsUserService ipmsUserService;
+
+    @Override
+    public IpmsEnterprise getEnterprise(HttpServletRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        long enterpriseId = loginUser.getEnterpriseId();
+        IpmsEnterprise ipmsEnterprise = ipmsEnterpriseMapper.selectById(enterpriseId);
+        if (ipmsEnterprise == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+        return ipmsEnterprise;
+    }
+
+    @Override
+    public int updateEnterprise(UpdateEnterpriseRequest updateEnterpriseRequest) {
+        long enterpriseId = updateEnterpriseRequest.getEnterpriseId();
+        if (enterpriseId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 为空");
+        }
+        String enterpriseCode = updateEnterpriseRequest.getEnterpriseCode();
+        String enterpriseName = updateEnterpriseRequest.getEnterpriseName();
+        if (StringUtils.isAnyBlank(enterpriseCode, enterpriseName)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "企业名称或者企业编码为空");
+        }
+        BigDecimal enterpriseAsset = updateEnterpriseRequest.getEnterpriseAsset();
+        if (enterpriseAsset == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "资产为空");
+        }
+        // 判断企业是否存在
+        IpmsEnterprise ipmsEnterprise = ipmsEnterpriseMapper.selectById(enterpriseId);
+        if (ipmsEnterprise == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 修改信息
+        IpmsEnterprise enterprise = new IpmsEnterprise();
+        BeanUtils.copyProperties(updateEnterpriseRequest, enterprise);
+        enterprise.setUpdateTime(new Date());
+        return ipmsEnterpriseMapper.updateById(enterprise);
+    }
 }
 
 

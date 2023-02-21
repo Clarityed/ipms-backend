@@ -1,7 +1,10 @@
 package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.clarity.ipmsbackend.model.dto.enterprise.UpdateEnterpriseRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
 * @author Clarity
@@ -10,4 +13,19 @@ import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
 */
 public interface IpmsEnterpriseService extends IService<IpmsEnterprise> {
 
+    /**
+     * 获取企业（所属企业信息）
+     *
+     * @param request
+     * @return
+     */
+    IpmsEnterprise getEnterprise(HttpServletRequest request);
+
+    /**
+     * 修改企业信息（管理员）
+     *
+     * @param updateEnterpriseRequest
+     * @return
+     */
+    int updateEnterprise(UpdateEnterpriseRequest updateEnterpriseRequest);
 }

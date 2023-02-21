@@ -45,7 +45,7 @@ public class IpmsUserController {
      * @return
      */
     @PostMapping("/login")
-    @ApiOperation(value = "用户登录")
+    @ApiOperation(value = "用户登录（任意用户）")
     public BaseResponse<SafeUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null || request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -61,7 +61,7 @@ public class IpmsUserController {
      * @return
      */
     @PostMapping("/getLoginUser")
-    @ApiOperation(value = "获取当前在线用户")
+    @ApiOperation(value = "获取当前在线用户（任意用户）")
     public BaseResponse<SafeUserVO> getLoginUser(HttpServletRequest request) {
         if (request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -71,7 +71,7 @@ public class IpmsUserController {
     }
 
     @PostMapping("/addUser")
-    @ApiOperation(value = "增加用户")
+    @ApiOperation(value = "增加用户（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody AddUserRequest addUserRequest, HttpServletRequest request) {
         if (addUserRequest == null || request == null) {

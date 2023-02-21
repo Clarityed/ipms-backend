@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
@@ -15,7 +16,7 @@ import java.util.Date;
 
 @ApiModel("安全用户响应体（脱敏后的用户信息）")
 @Data
-public class SafeUserVO {
+public class SafeUserVO implements Serializable {
     /**
      * 用户 id
      */

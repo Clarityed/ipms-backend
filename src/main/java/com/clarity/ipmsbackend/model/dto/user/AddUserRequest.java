@@ -52,7 +52,7 @@ public class AddUserRequest implements Serializable {
     /**
      * 用户角色
      */
-    @ApiModelProperty("用户角色")
+    @ApiModelProperty("用户角色（开发员, 开发主管, 销售员, 销售主管, 生产员, 生产主管, 采购员, 采购主管, 仓管员, 仓管主管）")
     private String userRole;
 
     private static final long serialVersionUID = 1L;
