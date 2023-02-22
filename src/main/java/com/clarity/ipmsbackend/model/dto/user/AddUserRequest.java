@@ -9,13 +9,13 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 增加用户请求体
+ * 增加用户请求封装类
  *
  * @author: clarity
  * @date: 2023年02月20日 19:58
  */
 
-@ApiModel("增加用户请求体")
+@ApiModel("增加用户请求封装类")
 @Data
 public class AddUserRequest implements Serializable {
 

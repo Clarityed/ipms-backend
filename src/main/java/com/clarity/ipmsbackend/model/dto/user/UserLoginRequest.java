@@ -7,13 +7,13 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 用户登录请求信息
+ * 用户登录请求封装类
  *
  * @author: clarity
  * @date: 2023年02月20日 14:39
  */
 
-@ApiModel("用户登录请求信息")
+@ApiModel("用户登录请求封装类")
 @Data
 public class UserLoginRequest implements Serializable {
 

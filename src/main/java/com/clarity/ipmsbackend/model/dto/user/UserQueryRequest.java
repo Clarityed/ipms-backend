@@ -1,22 +1,23 @@
-package com.clarity.ipmsbackend.model.vo;
+package com.clarity.ipmsbackend.model.dto.user;
 
+import com.clarity.ipmsbackend.common.PageRequest;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.util.Date;
+import lombok.EqualsAndHashCode;
 
 /**
- * 安全用户响应封装类（脱敏后的用户信息）
+ * 用户查询封装类
  *
  * @author: clarity
- * @date: 2023年02月20日 15:09
+ * @date: 2023年02月22日 9:40
  */
 
-@ApiModel("安全用户响应封装类（脱敏后的用户信息）")
+@EqualsAndHashCode(callSuper = true)
+@ApiModel("用户查询封装类")
 @Data
-public class SafeUserVO implements Serializable {
+public class UserQueryRequest extends PageRequest {
+
     /**
      * 用户 id
      */
@@ -52,24 +53,4 @@ public class SafeUserVO implements Serializable {
      */
     @ApiModelProperty("用户角色")
     private String userRole;
-
-    /**
-     * 所属企业 id
-     */
-    @ApiModelProperty("所属企业 id")
-    private Long enterpriseId;
-
-    /**
-     * 创建时间
-     */
-    @ApiModelProperty("创建时间")
-    private Date createTime;
-
-    /**
-     * 修改时间
-     */
-    @ApiModelProperty("修改时间")
-    private Date updateTime;
-
-    private static final long serialVersionUID = 1L;
 }

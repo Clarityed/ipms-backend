@@ -9,13 +9,13 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 安全企业响应体
+ * 安全企业响应封装类
  *
  * @author: clarity
  * @date: 2023年02月20日 15:09
  */
 
-@ApiModel("安全企业响应体")
+@ApiModel("安全企业响应封装类")
 @Data
 public class SafeEnterpriseVO implements Serializable {
     /**
