@@ -23,11 +23,11 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 public class Knife4jConfig {
 
     @Bean
-    public Docket defaultApi2() {
+    public Docket dockerBean() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(new ApiInfoBuilder()
                         .title("ipms-backend")
-                        .description("智能生成制造后端")
+                        .description("智能生成制造后端接口文档")
                         .version("1.0")
                         .build())
                 .select()
