@@ -20,13 +20,13 @@ public class UpdateEnterpriseRequest implements Serializable {
     /**
      * 企业 id
      */
-    @ApiModelProperty("企业 id")
+    @ApiModelProperty("企业 id，作为更新的索引")
     private Long enterpriseId;
 
     /**
      * 企业编号
      */
-    @ApiModelProperty("企业编号")
+    @ApiModelProperty("企业编号，不能修改")
     private String enterpriseCode;
 
     /**

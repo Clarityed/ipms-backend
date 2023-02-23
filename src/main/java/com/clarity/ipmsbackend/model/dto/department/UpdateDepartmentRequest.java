@@ -20,13 +20,13 @@ public class UpdateDepartmentRequest implements Serializable {
     /**
      * 部门 id
      */
-    @ApiModelProperty("部门 id")
+    @ApiModelProperty("部门 id，作为更新的索引")
     private Long departmentId;
 
     /**
      * 部门编号
      */
-    @ApiModelProperty("部门编号")
+    @ApiModelProperty("部门编号，不能修改")
     private String departmentCode;
 
     /**
