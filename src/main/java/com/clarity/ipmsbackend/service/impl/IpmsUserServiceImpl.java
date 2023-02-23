@@ -15,7 +15,9 @@ import com.clarity.ipmsbackend.model.dto.user.UserLoginRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsUser;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.UserRoleValid;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,8 @@ import java.util.stream.Collectors;
 * @description 针对表【ipms_user】的数据库操作Service实现
 * @createDate 2023-02-20 14:23:14
 */
+
+@Slf4j
 @Service
 public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
     implements IpmsUserService{
@@ -260,6 +264,21 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
         Page<SafeUserVO> safeUserVOPage = new PageDTO<>(userPage.getCurrent(), userPage.getSize(), userPage.getTotal());
         safeUserVOPage.setRecords(safeUserVOList);
         return safeUserVOPage;
+    }
+
+    @Override
+    public String userCodeAutoGenerate() {
+        QueryWrapper<IpmsUser> userQueryWrapper = new QueryWrapper<>();
+        List<IpmsUser> ipmsUserList = ipmsUserMapper.selectList(userQueryWrapper);
+        IpmsUser lastUser = ipmsUserList.get(ipmsUserList.size() - 1);
+        String userCode = lastUser.getUserCode();
+        String nextUserCode = null;
+        try {
+             nextUserCode = CodeAutoGenerator.literallyCode(userCode);
+        } catch (Exception e) {
+            log.info("编码自动生成器异常");
+        }
+        return nextUserCode;
     }
 }
 

@@ -98,4 +98,20 @@ public class IpmsDepartmentController {
         Page<SafeDepartmentVO> safeDepartmentVOPage = ipmsDepartmentService.pagingFuzzyQuery(fuzzyQueryRequest, request);
         return ResultUtils.success(safeDepartmentVOPage);
     }
+
+    /**
+     * 部门编号自动生成
+     *
+     * @return
+     */
+    @GetMapping("/departmentCodeAutoGenerate")
+    @ApiOperation(value = "部门编号自动生成")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<String> departmentCodeAutoGenerate() {
+        String result = ipmsDepartmentService.departmentCodeAutoGenerate();
+        if (result == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "编码自动生成器异常");
+        }
+        return ResultUtils.success(result);
+    }
 }

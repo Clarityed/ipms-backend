@@ -51,4 +51,11 @@ public interface IpmsDepartmentService extends IService<IpmsDepartment> {
      * @return
      */
     Page<SafeDepartmentVO> pagingFuzzyQuery(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
+
+    /**
+     * 部门编号自动生成
+     *
+     * @return
+     */
+    String departmentCodeAutoGenerate();
 }

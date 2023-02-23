@@ -76,4 +76,10 @@ public interface IpmsUserService extends IService<IpmsUser> {
      */
     Page<SafeUserVO> pagingFuzzyQuery(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
 
+    /**
+     * 用户编号自动生成
+     *
+     * @return
+     */
+    String userCodeAutoGenerate();
 }

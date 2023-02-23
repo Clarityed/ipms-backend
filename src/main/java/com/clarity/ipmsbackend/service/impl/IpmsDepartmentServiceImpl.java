@@ -18,6 +18,8 @@ import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsDepartmentService;
 import com.clarity.ipmsbackend.service.IpmsEnterpriseService;
 import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 * @createDate 2023-02-22 17:27:35
 */
 @Service
+@Slf4j
 public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper, IpmsDepartment>
     implements IpmsDepartmentService{
 
@@ -149,6 +152,21 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
         Page<SafeDepartmentVO> safeDepartmentVOPage = new PageDTO<>(departmentPage.getCurrent(), departmentPage.getSize(), departmentPage.getTotal());
         safeDepartmentVOPage.setRecords(safeDepartmentVOList);
         return safeDepartmentVOPage;
+    }
+
+    @Override
+    public String departmentCodeAutoGenerate() {
+        QueryWrapper<IpmsDepartment> ipmsDepartmentQueryWrapper = new QueryWrapper<>();
+        List<IpmsDepartment> ipmsDepartmentList = ipmsDepartmentMapper.selectList(ipmsDepartmentQueryWrapper);
+        IpmsDepartment lastDepartment = ipmsDepartmentList.get(ipmsDepartmentList.size() - 1);
+        String departmentCode = lastDepartment.getDepartmentCode();
+        String nextdepartmentCode = null;
+        try {
+            nextdepartmentCode = CodeAutoGenerator.literallyCode(departmentCode);
+        } catch (Exception e) {
+            log.info("编码自动生成器异常");
+        }
+        return nextdepartmentCode;
     }
 }
 

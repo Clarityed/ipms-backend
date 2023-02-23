@@ -157,4 +157,20 @@ public class IpmsUserController {
         Page<SafeUserVO> safeUserVOPage = ipmsUserService.pagingFuzzyQuery(fuzzyQueryRequest, request);
         return ResultUtils.success(safeUserVOPage);
     }
+
+    /**
+     * 用户编号自动生成
+     *
+     * @return
+     */
+    @GetMapping("/userCodeAutoGenerate")
+    @ApiOperation(value = "用户编号自动生成")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<String> userCodeAutoGenerate() {
+        String result = ipmsUserService.userCodeAutoGenerate();
+        if (result == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "编码自动生成器异常");
+        }
+        return ResultUtils.success(result);
+    }
 }
