@@ -13,6 +13,7 @@ public class CodeAutoGenerator {
         StringBuilder englishCode = new StringBuilder();
         StringBuilder arabCode = new StringBuilder();
         StringBuilder tempCode = new StringBuilder();
+        StringBuilder allZeroStr = new StringBuilder();
         char[] codeChars = codeStr.toCharArray();
         for (int i = 0; i < codeChars.length; i++) {
             if (Character.isUpperCase(codeChars[i])) {
@@ -20,6 +21,7 @@ public class CodeAutoGenerator {
             } else {
                 if (codeChars[i] == '0') {
                     arabCode.append(codeChars[i]);
+                    allZeroStr.append(codeChars[i]);
                 } else {
                     tempCode.append(codeChars[i]);
                     if (i == codeChars.length - 1) {
@@ -31,7 +33,11 @@ public class CodeAutoGenerator {
                 }
             }
         }
-        System.out.println(tempCode);
+        // 尾部数据全零判断
+        if (allZeroStr.toString().equals(arabCode.toString())) {
+            arabCode.delete(0,1);
+            arabCode.append(1);
+        }
         return englishCode + arabCode.toString();
     }
 }

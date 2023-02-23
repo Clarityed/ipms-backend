@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsEmployeeMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsEmployee">
+            <id property="employeeId" column="employee_id" jdbcType="BIGINT"/>
+            <result property="employeeCode" column="employee_code" jdbcType="VARCHAR"/>
+            <result property="employeeName" column="employee_name" jdbcType="VARCHAR"/>
+            <result property="employeePhoneNum" column="employee_phone_num" jdbcType="VARCHAR"/>
+            <result property="employeeBirthday" column="employee_birthday" jdbcType="TIMESTAMP"/>
+            <result property="employeeGender" column="employee_gender" jdbcType="TINYINT"/>
+            <result property="employeeEmail" column="employee_email" jdbcType="VARCHAR"/>
+            <result property="employeeWechatNum" column="employee_wechat_num" jdbcType="VARCHAR"/>
+            <result property="employeeOpeningBank" column="employee_opening_bank" jdbcType="VARCHAR"/>
+            <result property="employeeBankAccount" column="employee_bank_account" jdbcType="VARCHAR"/>
+            <result property="employeeIdCardType" column="employee_id_card_type" jdbcType="VARCHAR"/>
+            <result property="employeeIdCardNum" column="employee_id_card_num" jdbcType="VARCHAR"/>
+            <result property="employeeIsMaster" column="employee_is_master" jdbcType="TINYINT"/>
+            <result property="employeeSalary" column="employee_salary" jdbcType="DECIMAL"/>
+            <result property="employeeEntryTime" column="employee_entry_time" jdbcType="TIMESTAMP"/>
+            <result property="employeeDepartureTime" column="employee_departure_time" jdbcType="TIMESTAMP"/>
+            <result property="departmentId" column="department_id" jdbcType="BIGINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        employee_id,employee_code,employee_name,
+        employee_phone_num,employee_birthday,employee_gender,
+        employee_email,employee_wechat_num,employee_opening_bank,
+        employee_bank_account,employee_id_card_type,employee_id_card_num,
+        employee_is_master,employee_salary,employee_entry_time,
+        employee_departure_time,department_id,create_time,
+        update_time,is_delete
+    </sql>
+</mapper>

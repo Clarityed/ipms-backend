@@ -36,6 +36,13 @@ public class IpmsDepartmentController {
     @Resource
     private IpmsDepartmentService ipmsDepartmentService;
 
+    /**
+     * 增加部门（管理员）
+     *
+     * @param addDepartmentRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/addDepartment")
     @ApiOperation("增加部门（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)

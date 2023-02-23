@@ -158,15 +158,20 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
     public String departmentCodeAutoGenerate() {
         QueryWrapper<IpmsDepartment> ipmsDepartmentQueryWrapper = new QueryWrapper<>();
         List<IpmsDepartment> ipmsDepartmentList = ipmsDepartmentMapper.selectList(ipmsDepartmentQueryWrapper);
-        IpmsDepartment lastDepartment = ipmsDepartmentList.get(ipmsDepartmentList.size() - 1);
-        String departmentCode = lastDepartment.getDepartmentCode();
-        String nextdepartmentCode = null;
+        String departmentCode;
+        if (ipmsDepartmentList.size() == 0) {
+            departmentCode = "BM00000";
+        } else {
+            IpmsDepartment lastDepartment = ipmsDepartmentList.get(ipmsDepartmentList.size() - 1);
+            departmentCode = lastDepartment.getDepartmentCode();
+        }
+        String nextDepartmentCode = null;
         try {
-            nextdepartmentCode = CodeAutoGenerator.literallyCode(departmentCode);
+            nextDepartmentCode = CodeAutoGenerator.literallyCode(departmentCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }
-        return nextdepartmentCode;
+        return nextDepartmentCode;
     }
 }
 

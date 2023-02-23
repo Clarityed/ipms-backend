@@ -270,8 +270,13 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
     public String userCodeAutoGenerate() {
         QueryWrapper<IpmsUser> userQueryWrapper = new QueryWrapper<>();
         List<IpmsUser> ipmsUserList = ipmsUserMapper.selectList(userQueryWrapper);
-        IpmsUser lastUser = ipmsUserList.get(ipmsUserList.size() - 1);
-        String userCode = lastUser.getUserCode();
+        String userCode;
+        if (ipmsUserList.size() == 0) {
+            userCode = "KH00000";
+        } else {
+            IpmsUser lastUser = ipmsUserList.get(ipmsUserList.size() - 1);
+            userCode = lastUser.getUserCode();
+        }
         String nextUserCode = null;
         try {
              nextUserCode = CodeAutoGenerator.literallyCode(userCode);
