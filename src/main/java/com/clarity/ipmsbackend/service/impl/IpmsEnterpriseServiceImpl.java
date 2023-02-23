@@ -52,16 +52,7 @@ public class IpmsEnterpriseServiceImpl extends ServiceImpl<IpmsEnterpriseMapper,
     public int updateEnterprise(UpdateEnterpriseRequest updateEnterpriseRequest) {
         long enterpriseId = updateEnterpriseRequest.getEnterpriseId();
         if (enterpriseId <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 为空");
-        }
-        String enterpriseCode = updateEnterpriseRequest.getEnterpriseCode();
-        String enterpriseName = updateEnterpriseRequest.getEnterpriseName();
-        if (StringUtils.isAnyBlank(enterpriseCode, enterpriseName)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "企业名称或者企业编码为空");
-        }
-        BigDecimal enterpriseAsset = updateEnterpriseRequest.getEnterpriseAsset();
-        if (enterpriseAsset == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "资产为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
         // 判断企业是否存在
         IpmsEnterprise ipmsEnterprise = ipmsEnterpriseMapper.selectById(enterpriseId);

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsDepartmentMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsDepartment">
+            <id property="departmentId" column="department_id" jdbcType="BIGINT"/>
+            <result property="departmentCode" column="department_code" jdbcType="VARCHAR"/>
+            <result property="departmentName" column="department_name" jdbcType="VARCHAR"/>
+            <result property="departmentSuper" column="department_super" jdbcType="BIGINT"/>
+            <result property="enterpriseId" column="enterprise_id" jdbcType="BIGINT"/>
+            <result property="departmentDescription" column="department_description" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        department_id,department_code,department_name,
+        department_super,enterprise_id,department_description,
+        create_time,update_time,is_delete
+    </sql>
+</mapper>

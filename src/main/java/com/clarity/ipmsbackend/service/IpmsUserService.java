@@ -68,7 +68,7 @@ public interface IpmsUserService extends IService<IpmsUser> {
     int logoutUser(HttpServletRequest request);
 
     /**
-     * 分页查询用户，且数据脱敏
+     * 分页查询用户，且数据脱敏，且支持模糊查询
      *
      * @param fuzzyQueryRequest
      * @param request
