@@ -7,13 +7,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.exception.BusinessException;
+import com.clarity.ipmsbackend.mapper.IpmsEmployeeMapper;
 import com.clarity.ipmsbackend.model.dto.employee.AddEmployeeRequest;
 import com.clarity.ipmsbackend.model.dto.employee.UpdateEmployeeRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsDepartment;
 import com.clarity.ipmsbackend.model.entity.IpmsEmployee;
-import com.clarity.ipmsbackend.mapper.IpmsEmployeeMapper;
-import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
-import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
 import com.clarity.ipmsbackend.model.vo.SafeEmployeeVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsDepartmentService;
@@ -92,6 +90,7 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
+        // todo 如果员工和订单有关联，无法删除员工
         int result = ipmsEmployeeMapper.deleteById(id);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
@@ -105,13 +104,18 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
         if (employeeId == null || employeeId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 为空或者不合法");
         }
-        // 职员编号必须相同无法修改，且验证了部门是否存在
+        // 判断职员是否存在
+        IpmsEmployee employee = ipmsEmployeeMapper.selectById(employeeId);
+        if (employee == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 职员编号必须相同无法修改，且验证了职员是否存在
         String employeeCode = updateEmployeeRequest.getEmployeeCode();
         if (employeeCode != null) {
             QueryWrapper<IpmsEmployee> employeeQueryWrapper = new QueryWrapper<>();
-            employeeQueryWrapper.eq("employee_code", employeeCode);
+            employeeQueryWrapper.eq("employee_id", employeeId);
             IpmsEmployee oldEmployee = ipmsEmployeeMapper.selectOne(employeeQueryWrapper);
-            if (oldEmployee == null) {
+            if (!employeeCode.equals(oldEmployee.getEmployeeCode())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "职员编号必须相同无法修改");
             }
         }
@@ -120,7 +124,7 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
         if (department == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "部门不存在");
         }
-        // 插入数据
+        // 更新数据
         IpmsEmployee newEmployee = new IpmsEmployee();
         BeanUtils.copyProperties(updateEmployeeRequest, newEmployee);
         newEmployee.setUpdateTime(new Date());

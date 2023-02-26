@@ -44,7 +44,7 @@ public interface IpmsDepartmentService extends IService<IpmsDepartment> {
     int updateDepartment(UpdateDepartmentRequest updateDepartmentRequest);
 
     /**
-     * 分页查询用户，且数据脱敏，且支持模糊查询
+     * 分页查询部门，且数据脱敏，且支持模糊查询
      *
      * @param fuzzyQueryRequest
      * @param request

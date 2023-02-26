@@ -11,17 +11,20 @@ import com.clarity.ipmsbackend.model.dto.department.AddDepartmentRequest;
 import com.clarity.ipmsbackend.model.dto.department.UpdateDepartmentRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsDepartment;
 import com.clarity.ipmsbackend.mapper.IpmsDepartmentMapper;
+import com.clarity.ipmsbackend.model.entity.IpmsEmployee;
 import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
 import com.clarity.ipmsbackend.model.entity.IpmsUser;
 import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsDepartmentService;
+import com.clarity.ipmsbackend.service.IpmsEmployeeService;
 import com.clarity.ipmsbackend.service.IpmsEnterpriseService;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -48,6 +51,9 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
 
     @Resource
     private IpmsEnterpriseService ipmsEnterpriseService;
+
+    @Resource
+    private IpmsEmployeeService ipmsEmployeeService;
 
     @Override
     public int addDepartment(AddDepartmentRequest addDepartmentRequest, HttpServletRequest request) {
@@ -81,6 +87,13 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
+        // 如果部门下有成员无法删除该部门
+        QueryWrapper<IpmsEmployee> employeeQueryWrapper = new QueryWrapper<>();
+        employeeQueryWrapper.eq("department_id", id);
+        List<IpmsEmployee> employeeList = ipmsEmployeeService.list(employeeQueryWrapper);
+        if (employeeList.size() != 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该部门下还要成员");
+        }
         int result = ipmsDepartmentMapper.deleteById(id);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
@@ -94,17 +107,22 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
         if (departmentId == null || departmentId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 为空或者不合法");
         }
+        // 判断部门是否存在
+        IpmsDepartment department = ipmsDepartmentMapper.selectById(departmentId);
+        if (department == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
         // 部门编号必须相同无法修改，且验证了部门是否存在
         String departmentCode = updateDepartmentRequest.getDepartmentCode();
         if (departmentCode != null) {
             QueryWrapper<IpmsDepartment> departmentQueryWrapper = new QueryWrapper<>();
-            departmentQueryWrapper.eq("department_code", departmentCode);
+            departmentQueryWrapper.eq("department_id", departmentId);
             IpmsDepartment oldDepartment = ipmsDepartmentMapper.selectOne(departmentQueryWrapper);
-            if (oldDepartment == null) {
+            if (!departmentCode.equals(oldDepartment.getDepartmentCode())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "部门编号必须相同无法修改");
             }
         }
-        // 插入数据
+        // 更新数据
         IpmsDepartment newDepartment = new IpmsDepartment();
         BeanUtils.copyProperties(updateDepartmentRequest, newDepartment);
         newDepartment.setUpdateTime(new Date());

@@ -89,7 +89,7 @@ public class IpmsDepartmentController {
     }
 
     /**
-     * 分页查询部门，且模糊查询
+     * 分页查询部门，且模糊查询（管理员）
      *
      * @param fuzzyQueryRequest
      * @param request
@@ -107,12 +107,12 @@ public class IpmsDepartmentController {
     }
 
     /**
-     * 部门编号自动生成
+     * 部门编号自动生成（管理员）
      *
      * @return
      */
     @GetMapping("/departmentCodeAutoGenerate")
-    @ApiOperation(value = "部门编号自动生成")
+    @ApiOperation(value = "部门编号自动生成（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<String> departmentCodeAutoGenerate() {
         String result = ipmsDepartmentService.departmentCodeAutoGenerate();

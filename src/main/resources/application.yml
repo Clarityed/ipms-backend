@@ -24,6 +24,9 @@ spring:
   # session 失效时间（分钟）
   session:
     timeout: 86400
+  # 允许循环引用存在
+  main:
+    allow-circular-references: true
 
 mybatis-plus:
   configuration:
