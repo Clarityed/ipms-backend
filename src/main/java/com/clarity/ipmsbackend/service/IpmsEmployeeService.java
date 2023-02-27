@@ -3,11 +3,9 @@ package com.clarity.ipmsbackend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
-import com.clarity.ipmsbackend.model.dto.department.UpdateDepartmentRequest;
 import com.clarity.ipmsbackend.model.dto.employee.AddEmployeeRequest;
 import com.clarity.ipmsbackend.model.dto.employee.UpdateEmployeeRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsEmployee;
-import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
 import com.clarity.ipmsbackend.model.vo.SafeEmployeeVO;
 
 import javax.servlet.http.HttpServletRequest;

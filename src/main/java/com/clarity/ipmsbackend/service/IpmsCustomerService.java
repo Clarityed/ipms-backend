@@ -7,7 +7,6 @@ import com.clarity.ipmsbackend.model.dto.customer.AddCustomerRequest;
 import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerVO;
-import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
 
 import javax.servlet.http.HttpServletRequest;
 

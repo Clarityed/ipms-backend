@@ -1,4 +1,4 @@
-package com.clarity.ipmsbackend.model.vo;
+package com.clarity.ipmsbackend.model.dto.supplier;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -8,20 +8,20 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 安全客户联系人响应封装类
+ * 增加供应商联系人请求封装类
  *
  * @author: clarity
- * @date: 2023年02月26日 17:23
+ * @date: 2023年02月27日 10:16
  */
 
-@ApiModel("安全客户联系人响应封装类")
+@ApiModel("增加供应商联系人请求封装类")
 @Data
-public class SafeCustomerLinkmanVO implements Serializable {
+public class UpdateSupplierLinkmanRequest implements Serializable {
 
     /**
      * 联系人 id
      */
-    @ApiModelProperty("联系人 id")
+    @ApiModelProperty("联系人 id，作为更新的索引")
     private Long linkmanId;
 
     /**

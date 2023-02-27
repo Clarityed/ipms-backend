@@ -14,11 +14,8 @@ import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerLinkmanRequest;
 import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomerLinkman;
-import com.clarity.ipmsbackend.model.entity.IpmsDepartment;
-import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerLinkmanVO;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerVO;
-import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsCustomerLinkmanService;
 import com.clarity.ipmsbackend.service.IpmsCustomerService;
@@ -60,12 +57,12 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
     @Override
     public String customerCodeAutoGenerate() {
         QueryWrapper<IpmsCustomer> ipmsCustomerQueryWrapper = new QueryWrapper<>();
-        List<IpmsCustomer> ipmsDepartmentList = ipmsCustomerMapper.selectList(ipmsCustomerQueryWrapper);
+        List<IpmsCustomer> ipmsCustomerList = ipmsCustomerMapper.selectList(ipmsCustomerQueryWrapper);
         String customerCode;
-        if (ipmsDepartmentList.size() == 0) {
+        if (ipmsCustomerList.size() == 0) {
             customerCode = "GK00000";
         } else {
-            IpmsCustomer lastCustomer = ipmsDepartmentList.get(ipmsDepartmentList.size() - 1);
+            IpmsCustomer lastCustomer = ipmsCustomerList.get(ipmsCustomerList.size() - 1);
             customerCode = lastCustomer.getCustomerCode();
         }
         String nextCustomerCode = null;
@@ -129,8 +126,7 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
         // 3. 删除客户联系人信息
-        int result = ipmsCustomerLinkmanService.deleteCustomerLinkmanById(id);
-        return result;
+        return ipmsCustomerLinkmanService.deleteCustomerLinkmanById(id);
     }
 
     @Override

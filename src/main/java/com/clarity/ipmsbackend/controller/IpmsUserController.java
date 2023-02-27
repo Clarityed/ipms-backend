@@ -11,8 +11,6 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.user.AddUserRequest;
 import com.clarity.ipmsbackend.model.dto.user.UpdateUserRequest;
 import com.clarity.ipmsbackend.model.dto.user.UserLoginRequest;
-import com.clarity.ipmsbackend.model.dto.user.UserQueryRequest;
-import com.clarity.ipmsbackend.model.entity.IpmsUser;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import io.swagger.annotations.Api;

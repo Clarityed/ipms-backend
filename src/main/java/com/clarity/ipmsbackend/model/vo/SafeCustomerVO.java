@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -16,7 +17,7 @@ import java.util.List;
 
 @ApiModel("安全客户响应封装类")
 @Data
-public class SafeCustomerVO {
+public class SafeCustomerVO implements Serializable {
 
     /**
      * 客户 id

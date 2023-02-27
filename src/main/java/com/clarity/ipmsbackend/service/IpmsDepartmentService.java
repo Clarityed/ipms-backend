@@ -7,7 +7,6 @@ import com.clarity.ipmsbackend.model.dto.department.AddDepartmentRequest;
 import com.clarity.ipmsbackend.model.dto.department.UpdateDepartmentRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsDepartment;
 import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
-import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 
 import javax.servlet.http.HttpServletRequest;
 

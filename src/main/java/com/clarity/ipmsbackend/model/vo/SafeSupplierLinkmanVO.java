@@ -4,19 +4,18 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
-import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 安全客户联系人响应封装类
+ * 供应商客户联系人响应封装类
  *
  * @author: clarity
- * @date: 2023年02月26日 17:23
+ * @date: 2023年02月27日 10:47
  */
 
-@ApiModel("安全客户联系人响应封装类")
+@ApiModel("供应商客户联系人响应封装类")
 @Data
-public class SafeCustomerLinkmanVO implements Serializable {
+public class SafeSupplierLinkmanVO {
 
     /**
      * 联系人 id

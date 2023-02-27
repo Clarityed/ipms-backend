@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -15,7 +16,7 @@ import java.util.List;
 
 @ApiModel("更新客户请求封装类")
 @Data
-public class UpdateCustomerRequest {
+public class UpdateCustomerRequest implements Serializable {
 
     /**
      * 客户 id
@@ -42,9 +43,9 @@ public class UpdateCustomerRequest {
     private String customerType;
 
     /**
-     * 客户联系人列表
+     * 更新客户联系人请求列表
      */
-    @ApiModelProperty("客户联系人列表")
+    @ApiModelProperty("更新客户联系人请求列表")
     private List<UpdateCustomerLinkmanRequest> updateCustomerLinkmanRequestList;
 
     private static final long serialVersionUID = 1L;

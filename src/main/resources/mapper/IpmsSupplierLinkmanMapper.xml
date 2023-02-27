@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsSupplierLinkmanMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsSupplierLinkman">
+            <id property="linkmanId" column="linkman_id" jdbcType="BIGINT"/>
+            <result property="supplierId" column="supplier_id" jdbcType="BIGINT"/>
+            <result property="linkmanName" column="linkman_name" jdbcType="VARCHAR"/>
+            <result property="linkmanPhone" column="linkman_phone" jdbcType="VARCHAR"/>
+            <result property="linkmanGender" column="linkman_gender" jdbcType="TINYINT"/>
+            <result property="linkmanBirth" column="linkman_birth" jdbcType="TIMESTAMP"/>
+            <result property="linkmanQq" column="linkman_qq" jdbcType="VARCHAR"/>
+            <result property="linkmanWechat" column="linkman_wechat" jdbcType="VARCHAR"/>
+            <result property="linkmanEmail" column="linkman_email" jdbcType="VARCHAR"/>
+            <result property="linkmanAdminDivision" column="linkman_admin_division" jdbcType="VARCHAR"/>
+            <result property="linkmanDetailAddress" column="linkman_detail_address" jdbcType="VARCHAR"/>
+            <result property="linkmanIsMain" column="linkman_is_main" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        linkman_id,supplier_id,linkman_name,
+        linkman_phone,linkman_gender,linkman_birth,
+        linkman_qq,linkman_wechat,linkman_email,
+        linkman_admin_division,linkman_detail_address,linkman_is_main,
+        create_time,update_time,is_delete
+    </sql>
+</mapper>

@@ -4,11 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.exception.BusinessException;
+import com.clarity.ipmsbackend.mapper.IpmsCustomerLinkmanMapper;
 import com.clarity.ipmsbackend.model.dto.customer.AddCustomerLinkmanRequest;
 import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerLinkmanRequest;
-import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomerLinkman;
-import com.clarity.ipmsbackend.mapper.IpmsCustomerLinkmanMapper;
 import com.clarity.ipmsbackend.service.IpmsCustomerLinkmanService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -31,6 +30,9 @@ public class IpmsCustomerLinkmanServiceImpl extends ServiceImpl<IpmsCustomerLink
     @Override
     public int addCustomerLinkman(AddCustomerLinkmanRequest addCustomerLinkmanRequest, long customerId) {
         // 如果有需要这里可继续参数校验
+        if (customerId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "客户 id 不合法");
+        }
         IpmsCustomerLinkman customerLinkman = new IpmsCustomerLinkman();
         BeanUtils.copyProperties(addCustomerLinkmanRequest, customerLinkman);
         // 客户联系人表必须有客户 id
@@ -47,12 +49,12 @@ public class IpmsCustomerLinkmanServiceImpl extends ServiceImpl<IpmsCustomerLink
     @Override
     public int deleteCustomerLinkmanById(long customerId) {
         if (customerId <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "客户 id 不存在或者 id 不合法");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "客户 id 不合法");
         }
         QueryWrapper<IpmsCustomerLinkman> customerLinkmanQueryWrapper = new QueryWrapper<>();
         customerLinkmanQueryWrapper.eq("customer_id", customerId);
         int result = ipmsCustomerLinkmanMapper.delete(customerLinkmanQueryWrapper);
-        if (result != 1) {
+        if (result <= 0) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
         return result;
