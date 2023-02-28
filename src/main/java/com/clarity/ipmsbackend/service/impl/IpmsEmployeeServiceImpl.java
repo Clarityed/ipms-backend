@@ -90,7 +90,7 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
-        // todo 如果员工和订单有关联，无法删除员工
+        // todo 如果员工和订单有关联，无法删除员工，还有和仓库有关系
         int result = ipmsEmployeeMapper.deleteById(id);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);

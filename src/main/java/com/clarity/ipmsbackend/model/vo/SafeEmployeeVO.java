@@ -116,6 +116,12 @@ public class SafeEmployeeVO implements Serializable {
     private Date employeeDepartureTime;
 
     /**
+     * 所属部门 id
+     */
+    @ApiModelProperty("所属部门 id")
+    private Long departmentId;
+
+    /**
      * 所属部门名称
      */
     @ApiModelProperty("所属部门名称")

@@ -36,6 +36,12 @@ public class IpmsEnterpriseController {
     @Resource
     private IpmsEnterpriseService ipmsEnterpriseService;
 
+    /**
+     * 测试接口
+     *
+     * @param id
+     * @return
+     */
     @ApiIgnore
     @GetMapping("/test/{id}")
     public BaseResponse<Integer> test(@PathVariable("id")int id) {
@@ -45,6 +51,12 @@ public class IpmsEnterpriseController {
         return ResultUtils.success(id);
     }
 
+    /**
+     * 查询企业（任意用户）
+     *
+     * @param request
+     * @return
+     */
     @GetMapping("/getEnterprise")
     @ApiOperation("查询企业（任意用户）")
     public BaseResponse<SafeEnterpriseVO> getEnterprise(HttpServletRequest request) {
@@ -57,6 +69,12 @@ public class IpmsEnterpriseController {
         return ResultUtils.success(safeEnterpriseVO);
     }
 
+    /**
+     * 更新企业信息（管理员）
+     *
+     * @param updateEnterpriseRequest
+     * @return
+     */
     @PutMapping("/updateEnterprise")
     @ApiOperation("更新企业信息（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)

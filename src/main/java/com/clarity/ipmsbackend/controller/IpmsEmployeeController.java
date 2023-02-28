@@ -87,15 +87,14 @@ public class IpmsEmployeeController {
     }
 
     /**
-     * 分页查询部门，且模糊查询
+     * 分页查询部门，且模糊查询（任意用户）
      *
      * @param fuzzyQueryRequest
      * @param request
      * @return
      */
     @GetMapping("/pagingFuzzyQuery")
-    @ApiOperation(value = "分页查询部门，且模糊查询（管理员）")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @ApiOperation(value = "分页查询部门，且模糊查询（任意用户）")
     public BaseResponse<Page<SafeEmployeeVO>> pagingFuzzyQuery(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
         if (fuzzyQueryRequest == null || request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

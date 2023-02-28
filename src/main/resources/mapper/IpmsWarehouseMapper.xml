@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsWarehouseMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsWarehouse">
+            <id property="warehouseId" column="warehouse_id" jdbcType="BIGINT"/>
+            <result property="warehouseCode" column="warehouse_code" jdbcType="VARCHAR"/>
+            <result property="warehouseName" column="warehouse_name" jdbcType="VARCHAR"/>
+            <result property="warehouseType" column="warehouse_type" jdbcType="VARCHAR"/>
+            <result property="warehouseAdminDivision" column="warehouse_admin_division" jdbcType="VARCHAR"/>
+            <result property="warehouseDetailAddress" column="warehouse_detail_address" jdbcType="VARCHAR"/>
+            <result property="warehouseRemark" column="warehouse_remark" jdbcType="VARCHAR"/>
+            <result property="isNegativeInventory" column="is_negative_inventory" jdbcType="TINYINT"/>
+            <result property="isWarehousePositionManagement" column="is_warehouse_position_management" jdbcType="TINYINT"/>
+            <result property="warehouseKeeperId" column="warehouse_keeper_id" jdbcType="BIGINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        warehouse_id,warehouse_code,warehouse_name,
+        warehouse_type,warehouse_admin_division,warehouse_detail_address,
+        warehouse_remark,is_negative_inventory,is_warehouse_position_management,
+        warehouse_keeper_id,create_time,update_time,
+        is_delete
+    </sql>
+</mapper>
