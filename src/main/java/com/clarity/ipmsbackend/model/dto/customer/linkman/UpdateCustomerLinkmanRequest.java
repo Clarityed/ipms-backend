@@ -1,4 +1,4 @@
-package com.clarity.ipmsbackend.model.dto.customer;
+package com.clarity.ipmsbackend.model.dto.customer.linkman;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

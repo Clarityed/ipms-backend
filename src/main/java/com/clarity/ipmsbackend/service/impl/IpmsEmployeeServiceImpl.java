@@ -120,9 +120,15 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
             }
         }
         // 判断部门是否存在
-        IpmsDepartment department = ipmsDepartmentService.getById(updateEmployeeRequest.getDepartmentId());
-        if (department == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "部门不存在");
+        Long departmentId = updateEmployeeRequest.getDepartmentId();
+        if (departmentId != null) {
+            if (departmentId <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "部门 id 不合法");
+            }
+            IpmsDepartment department = ipmsDepartmentService.getById(updateEmployeeRequest.getDepartmentId());
+            if (department == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "部门不存在");
+            }
         }
         // 更新数据
         IpmsEmployee newEmployee = new IpmsEmployee();

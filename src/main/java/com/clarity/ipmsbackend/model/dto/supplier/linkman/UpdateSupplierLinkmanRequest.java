@@ -1,4 +1,4 @@
-package com.clarity.ipmsbackend.model.dto.supplier;
+package com.clarity.ipmsbackend.model.dto.supplier.linkman;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -16,7 +16,13 @@ import java.util.Date;
 
 @ApiModel("增加供应商联系人请求封装类")
 @Data
-public class AddSupplierLinkmanRequest implements Serializable {
+public class UpdateSupplierLinkmanRequest implements Serializable {
+
+    /**
+     * 联系人 id
+     */
+    @ApiModelProperty("联系人 id，作为更新的索引")
+    private Long linkmanId;
 
     /**
      * 联系人姓名

@@ -1,8 +1,8 @@
 package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.clarity.ipmsbackend.model.dto.customer.AddCustomerLinkmanRequest;
-import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerLinkmanRequest;
+import com.clarity.ipmsbackend.model.dto.customer.linkman.AddCustomerLinkmanRequest;
+import com.clarity.ipmsbackend.model.dto.customer.linkman.UpdateCustomerLinkmanRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomerLinkman;
 
 /**

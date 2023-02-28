@@ -1,5 +1,6 @@
 package com.clarity.ipmsbackend.model.dto.customer;
 
+import com.clarity.ipmsbackend.model.dto.customer.linkman.UpdateCustomerLinkmanRequest;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
