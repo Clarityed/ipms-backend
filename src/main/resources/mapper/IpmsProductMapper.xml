@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsProduct">
+            <id property="productId" column="product_id" jdbcType="BIGINT"/>
+            <result property="productCode" column="product_code" jdbcType="VARCHAR"/>
+            <result property="productName" column="product_name" jdbcType="VARCHAR"/>
+            <result property="productType" column="product_type" jdbcType="VARCHAR"/>
+            <result property="productSpecification" column="product_specification" jdbcType="VARCHAR"/>
+            <result property="unitId" column="unit_id" jdbcType="BIGINT"/>
+            <result property="productPurchasePrice" column="product_purchase_price" jdbcType="DECIMAL"/>
+            <result property="productReferenceCost" column="product_reference_cost" jdbcType="DECIMAL"/>
+            <result property="isSale" column="is_sale" jdbcType="TINYINT"/>
+            <result property="isPurchase" column="is_purchase" jdbcType="TINYINT"/>
+            <result property="isSubcomponent" column="is_subcomponent" jdbcType="TINYINT"/>
+            <result property="isComponent" column="is_component" jdbcType="TINYINT"/>
+            <result property="isShelfLifeManagement" column="is_shelf_life_management" jdbcType="TINYINT"/>
+            <result property="productShelfLifeUnit" column="product_shelf_life_unit" jdbcType="VARCHAR"/>
+            <result property="productShelfLife" column="product_shelf_life" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        product_id,product_code,product_name,
+        product_type,product_specification,unit_id,
+        product_purchase_price,product_reference_cost,is_sale,
+        is_purchase,is_subcomponent,is_component,
+        is_shelf_life_management,product_shelf_life_unit,product_shelf_life,
+        create_time,update_time,is_delete
+    </sql>
+</mapper>
