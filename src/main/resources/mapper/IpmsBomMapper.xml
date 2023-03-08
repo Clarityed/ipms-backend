@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsBomMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsBom">
+            <id property="bomId" column="bom_id" jdbcType="BIGINT"/>
+            <result property="bomLevel" column="bom_level" jdbcType="TINYINT"/>
+            <result property="bomCode" column="bom_code" jdbcType="VARCHAR"/>
+            <result property="bomRemark" column="bom_remark" jdbcType="VARCHAR"/>
+            <result property="bomClassId" column="bom_class_id" jdbcType="BIGINT"/>
+            <result property="founder" column="founder" jdbcType="VARCHAR"/>
+            <result property="modifier" column="modifier" jdbcType="VARCHAR"/>
+            <result property="checkState" column="check_state" jdbcType="TINYINT"/>
+            <result property="checker" column="checker" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="checkTime" column="check_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        bom_id,bom_level,bom_code,
+        bom_remark,bom_class_id,founder,
+        modifier,check_state,checker,
+        create_time,update_time,check_time,
+        is_delete
+    </sql>
+</mapper>

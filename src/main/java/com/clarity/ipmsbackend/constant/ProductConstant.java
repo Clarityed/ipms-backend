@@ -18,4 +18,24 @@ public class ProductConstant {
      * 关闭保质期管理
      */
     public static final int CLOSE_SHELF_LIFE_MANAGEMENT = 0;
+
+    /**
+     * 开启组件功能
+     */
+    public static final int OPEN_COMPONENT_FUNCTION = 1;
+
+    /**
+     * 关闭组件功能
+     */
+    public static final int CLOSE_COMPONENT_FUNCTION = 0;
+
+    /**
+     * 开启子件功能
+     */
+    public static final int OPEN_SUBCOMPONENT_FUNCTION = 1;
+
+    /**
+     * 关闭子件功能
+     */
+    public static final int CLOSE_SUBCOMPONENT_FUNCTION = 0;
 }

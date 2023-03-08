@@ -11,6 +11,7 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.product.AddProductRequest;
 import com.clarity.ipmsbackend.model.dto.product.UpdateProductRequest;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
+import com.clarity.ipmsbackend.service.IpmsProductBomService;
 import com.clarity.ipmsbackend.service.IpmsProductService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -36,13 +37,16 @@ public class IpmsProductController {
     @Resource
     private IpmsProductService ipmsProductService;
 
+    @Resource
+    private IpmsProductBomService ipmsProductBomService;
+
     /**
      * 商品编号自动生成
      *
      * @return
      */
     @GetMapping("/productCodeAutoGenerate")
-    @ApiOperation(value = "计量单位编号自动生成（管理员）")
+    @ApiOperation(value = "商品编号自动生成（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<String> productCodeAutoGenerate() {
         String result = ipmsProductService.productCodeAutoGenerate();
@@ -117,6 +121,42 @@ public class IpmsProductController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         Page<SafeProductVO> safeProductVOPage = ipmsProductService.pagingFuzzyQuery(fuzzyQueryRequest, request);
+        return ResultUtils.success(safeProductVOPage);
+    }
+
+    /**
+     * 分页查询商品，且数据脱敏，且支持模糊查询，并且提供给开发员创建 BOM 时，查询能够作为 BOM 的商品（开发员，开发主管）
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    @GetMapping("/pagingFuzzyQueryCanAsProductOfBom")
+    @ApiOperation(value = "分页查询商品，且模糊查询，提供给开发员创建 BOM 时，查询能够作为 BOM 的商品（开发员，开发主管）")
+    @AuthCheck(anyRole = {UserConstant.DEVELOP_ROLE, UserConstant.DEVELOP_ROLE_SUPER})
+    public BaseResponse<Page<SafeProductVO>> pagingFuzzyQueryCanAsProductOfBom(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        if (fuzzyQueryRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeProductVO> safeProductVOPage = ipmsProductBomService.pagingFuzzyQueryCanAsProductOfBom(fuzzyQueryRequest, request);
+        return ResultUtils.success(safeProductVOPage);
+    }
+
+    /**
+     * 分页查询商品，且数据脱敏，且支持模糊查询，并且提供给开发员创建 BOM 时，查询能够作为 BOM 子件的商品（开发员，开发主管）
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    @GetMapping("/pagingFuzzyQueryCanAsProductOfBomSubComponent")
+    @ApiOperation(value = "分页查询商品，且数据脱敏，且支持模糊查询，并且提供给开发员创建 BOM 时，查询能够作为 BOM 子件的商品（开发员，开发主管）")
+    @AuthCheck(anyRole = {UserConstant.DEVELOP_ROLE, UserConstant.DEVELOP_ROLE_SUPER})
+    public BaseResponse<Page<SafeProductVO>> pagingFuzzyQueryCanAsProductOfBomSubComponent(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        if (fuzzyQueryRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeProductVO> safeProductVOPage = ipmsProductBomService.pagingFuzzyQueryCanAsProductOfBomSubComponent(fuzzyQueryRequest, request);
         return ResultUtils.success(safeProductVOPage);
     }
 }

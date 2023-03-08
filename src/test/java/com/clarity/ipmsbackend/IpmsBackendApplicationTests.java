@@ -1,18 +1,30 @@
 package com.clarity.ipmsbackend;
 
-import com.clarity.ipmsbackend.constant.UserConstant;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.util.DigestUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @SpringBootTest
 class IpmsBackendApplicationTests {
 
     @Test
     void contextLoads() {
-        String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + "123456789").getBytes());
-        System.out.println("encryptPassword = " + encryptPassword);
-        System.out.println(IpmsBackendApplicationTests.literallyCode());
+        // String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + "123456789").getBytes());
+        // System.out.println("encryptPassword = " + encryptPassword);
+        // System.out.println(IpmsBackendApplicationTests.literallyCode());
+        List<Long> longList = new ArrayList<>();
+        longList.add(1L);
+        longList.add(1L);
+        longList.add(1L);
+        longList.add(1L);
+        longList.add(1L);
+        longList.add(1L);
+        List<Long> distinctLongList = longList.stream().distinct().collect(Collectors.toList());
+        System.out.println(longList);
+        System.out.println(distinctLongList);
     }
 
     public static String literallyCode() {
