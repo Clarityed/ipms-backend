@@ -16,13 +16,11 @@ import com.clarity.ipmsbackend.model.dto.productbom.UpdateProductBomRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsBom;
 import com.clarity.ipmsbackend.model.entity.IpmsProduct;
 import com.clarity.ipmsbackend.model.entity.IpmsProductBom;
+import com.clarity.ipmsbackend.model.entity.IpmsUnit;
 import com.clarity.ipmsbackend.model.vo.SafeBomVO;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
-import com.clarity.ipmsbackend.service.IpmsBomService;
-import com.clarity.ipmsbackend.service.IpmsProductBomService;
-import com.clarity.ipmsbackend.service.IpmsProductService;
-import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +59,9 @@ public class IpmsBomServiceImpl extends ServiceImpl<IpmsBomMapper, IpmsBom>
 
     @Resource
     private IpmsProductService ipmsProductService;
+
+    @Resource
+    private IpmsUnitService ipmsUnitService;
 
     @Override
     public String bomCodeAutoGenerate() {
@@ -282,14 +283,24 @@ public class IpmsBomServiceImpl extends ServiceImpl<IpmsBomMapper, IpmsBom>
                     IpmsProductBom productBom = productBomList.get(0);
                     Long productId = productBom.getProductId();
                     IpmsProduct fatherProduct = ipmsProductService.getById(productId);
+                    Long unitId = fatherProduct.getUnitId();
                     SafeProductVO safeProductVO = new SafeProductVO();
                     BeanUtils.copyProperties(fatherProduct, safeProductVO);
+                    if (unitId != null && unitId > 0) {
+                        IpmsUnit unit = ipmsUnitService.getById(unitId);
+                        safeProductVO.setUnitName(unit.getUnitName());
+                    }
                     safeBomVO.setSafeProductVO(safeProductVO);
                     List<SafeProductVO> safeProductVOList = new ArrayList<>();
                     for (IpmsProductBom ipmsProductBom : productBomList) {
                         safeProductVO = new SafeProductVO();
                         Long subcomponentProductId = ipmsProductBom.getSubcomponentProductId();
                         IpmsProduct subComponentProduct = ipmsProductService.getById(subcomponentProductId);
+                        Long subComponentProductUnitId = subComponentProduct.getUnitId();
+                        if (subComponentProductUnitId != null && subComponentProductUnitId > 0) {
+                            IpmsUnit subComponentProductUnit = ipmsUnitService.getById(subComponentProductUnitId);
+                            safeProductVO.setUnitName(subComponentProductUnit.getUnitName());
+                        }
                         BeanUtils.copyProperties(subComponentProduct, safeProductVO);
                         safeProductVOList.add(safeProductVO);
                     }
