@@ -10,10 +10,9 @@ import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.bom.AddBomRequest;
 import com.clarity.ipmsbackend.model.dto.bom.UpdateBomRequest;
-import com.clarity.ipmsbackend.model.dto.unit.UpdateUnitRequest;
-import com.clarity.ipmsbackend.model.vo.SafeBomVO;
-import com.clarity.ipmsbackend.model.vo.SafeProductVO;
-import com.clarity.ipmsbackend.model.vo.SafeUnitVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeReverseQueryBomVO;
 import com.clarity.ipmsbackend.service.IpmsBomService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * BOM 控制器
@@ -157,5 +157,37 @@ public class IpmsBomController {
         }
         int result = ipmsBomService.reverseCheckBom(bomId);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * BOM 正向查询（任意用户）
+     *
+     * @param bomCode
+     * @return
+     */
+    @GetMapping("/getBomLevelMessageByBomCode/{bomCode}")
+    @ApiOperation("BOM 正向查询（任意用户）")
+    public BaseResponse<List<SafeForwardQueryBomVO>> getBomLevelMessageByBomCode(@PathVariable("bomCode") String bomCode) {
+        if (bomCode == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        List<SafeForwardQueryBomVO> bomLevelMessageList = ipmsBomService.getBomLevelMessageByBomCode(bomCode);
+        return ResultUtils.success(bomLevelMessageList);
+    }
+
+    /**
+     * BOM 反向查询（任意用户）
+     *
+     * @param productCode
+     * @return
+     */
+    @GetMapping("/getBomFatherProductOfSubComponentByProductCode/{productCode}")
+    @ApiOperation("BOM 反向查询（任意用户）")
+    public BaseResponse<List<SafeReverseQueryBomVO>> getBomFatherProductOfSubComponentByProductCode(@PathVariable("productCode") String productCode) {
+        if (productCode == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        List<SafeReverseQueryBomVO> bomFatherProductOfSubComponentList = ipmsBomService.getBomFatherProductOfSubComponentByProductCode(productCode);
+        return ResultUtils.success(bomFatherProductOfSubComponentList);
     }
 }

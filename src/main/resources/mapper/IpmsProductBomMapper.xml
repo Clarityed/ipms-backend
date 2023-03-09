@@ -47,4 +47,13 @@
                  inner join ipms_product on ipms_product.product_id = ipms_product_bom.product_id
         where ipms_bom.bom_level = 2 and ipms_bom.is_delete = 0 and ipms_product.is_delete = 0 and ipms_product_bom.is_delete = 0;
     </select>
+
+    <select id="getBomSubComponentMessage" resultType="com.clarity.ipmsbackend.model.entity.IpmsProductBom">
+        select ipms_product_bom.subcomponent_bom_id, ipms_product_bom.subcomponent_product_id, ipms_product_bom.subcomponent_material_num
+        from ipms_product_bom
+                 inner join ipms_bom on ipms_bom.bom_id = ipms_product_bom.bom_id
+                 inner join ipms_product on ipms_product.product_id = ipms_product_bom.product_id
+                 inner join ipms_unit on ipms_unit.unit_id = ipms_product.unit_id
+        where ipms_bom.is_delete = 0 and ipms_product.is_delete = 0 and ipms_product_bom.is_delete = 0 and ipms_unit.is_delete = 0 and ipms_bom.bom_code = #{bomCode};
+    </select>
 </mapper>

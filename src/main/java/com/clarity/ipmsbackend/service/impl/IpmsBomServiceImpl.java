@@ -17,9 +17,11 @@ import com.clarity.ipmsbackend.model.entity.IpmsBom;
 import com.clarity.ipmsbackend.model.entity.IpmsProduct;
 import com.clarity.ipmsbackend.model.entity.IpmsProductBom;
 import com.clarity.ipmsbackend.model.entity.IpmsUnit;
-import com.clarity.ipmsbackend.model.vo.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeReverseQueryBomVO;
 import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.TimeFormatUtil;
@@ -369,6 +371,153 @@ public class IpmsBomServiceImpl extends ServiceImpl<IpmsBomMapper, IpmsBom>
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
         return result;
+    }
+
+    @Override
+    public List<SafeForwardQueryBomVO> getBomLevelMessageByBomCode(String bomCode) {
+        if (bomCode == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "BOM 编号为空");
+        }
+        QueryWrapper<IpmsBom> bomQueryWrapper = new QueryWrapper<>();
+        bomQueryWrapper.eq("bom_code", bomCode);
+        IpmsBom bom = ipmsBomMapper.selectOne(bomQueryWrapper);
+        if (bom == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "该 BOM 单不存在");
+        }
+        List<SafeForwardQueryBomVO> bomProductList = ipmsBomMapper.getBomFatherProduct(bomCode);
+        // 设置父级商品为 1
+        SafeForwardQueryBomVO fatherProductMessage = bomProductList.get(0);
+        fatherProductMessage.setLevel(0);
+        fatherProductMessage.setSubcomponentMaterialNum(1);
+        // 获取子级商品 id、商品用量、商品子级 BOM id
+        List<IpmsProductBom> bomSubComponentMessageList = ipmsProductBomService.getBomSubComponentMessage(bomCode);
+        for (IpmsProductBom productBom : bomSubComponentMessageList) {
+            Long subcomponentBomId = productBom.getSubcomponentBomId();
+            Long subcomponentProductId = productBom.getSubcomponentProductId();
+            Integer subcomponentMaterialNum = productBom.getSubcomponentMaterialNum();
+            if (subcomponentBomId != null && subcomponentBomId > 0) {
+                List<SafeForwardQueryBomVO> bomOneLevelProduct = ipmsBomMapper.getBomOneLevelProduct(subcomponentBomId);
+                SafeForwardQueryBomVO safeForwardQueryBomVO = bomOneLevelProduct.get(0);
+                safeForwardQueryBomVO.setLevel(1);
+                safeForwardQueryBomVO.setSubcomponentMaterialNum(subcomponentMaterialNum);
+                bomProductList.addAll(bomOneLevelProduct);
+                String subComponentBomCode = safeForwardQueryBomVO.getBomCode();
+                List<IpmsProductBom> bomTwoLevelSubComponentMessage = ipmsProductBomService.getBomSubComponentMessage(subComponentBomCode);
+                for (IpmsProductBom twoLevelProductBom : bomTwoLevelSubComponentMessage) {
+                    IpmsProduct twoSubComponentProduct = ipmsProductService.getById(twoLevelProductBom.getSubcomponentProductId());
+                    SafeForwardQueryBomVO twoSubComponentBomVO = new SafeForwardQueryBomVO();
+                    BeanUtils.copyProperties(twoSubComponentProduct, twoSubComponentBomVO);
+                    Long unitId = twoSubComponentProduct.getUnitId();
+                    IpmsUnit unit = ipmsUnitService.getById(unitId);
+                    twoSubComponentBomVO.setSubcomponentMaterialNum(twoLevelProductBom.getSubcomponentMaterialNum());
+                    twoSubComponentBomVO.setLevel(2);
+                    twoSubComponentBomVO.setUnitName(unit.getUnitName());
+                    bomProductList.add(twoSubComponentBomVO);
+                }
+            } else {
+                // 否则通过 id 去查询商品信息
+                IpmsProduct oneLevelProduct = ipmsProductService.getById(subcomponentProductId);
+                Long unitId = oneLevelProduct.getUnitId();
+                IpmsUnit unit = ipmsUnitService.getById(unitId);
+                SafeForwardQueryBomVO safeForwardQueryBomVO = new SafeForwardQueryBomVO();
+                BeanUtils.copyProperties(oneLevelProduct, safeForwardQueryBomVO);
+                safeForwardQueryBomVO.setLevel(1);
+                safeForwardQueryBomVO.setUnitName(unit.getUnitName());
+                safeForwardQueryBomVO.setSubcomponentMaterialNum(subcomponentMaterialNum);
+                bomProductList.add(safeForwardQueryBomVO);
+            }
+        }
+        return bomProductList;
+    }
+
+    @Override
+    public List<SafeReverseQueryBomVO> getBomFatherProductOfSubComponentByProductCode(String productCode) {
+        if (productCode == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        QueryWrapper<IpmsProduct> productQueryWrapper = new QueryWrapper<>();
+        productQueryWrapper.eq("product_code", productCode);
+        IpmsProduct product = ipmsProductService.getOne(productQueryWrapper);
+        if (product == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 根据商品编号查询到 BOM 商品关系表，关联该 bomId 和 BOM 表的 id，
+        Long productId = product.getProductId();
+        QueryWrapper<IpmsProductBom> productBomQueryWrapper = new QueryWrapper<>();
+        productBomQueryWrapper.eq("product_id", productId);
+        List<IpmsProductBom> productBomList = ipmsProductBomService.list(productBomQueryWrapper);
+        // 收集父级商品信息
+        List<SafeReverseQueryBomVO> safeReverseQueryBomVOList = new ArrayList<>();
+        if (productBomList != null && productBomList.size() > 0) {
+            IpmsProductBom productBom = productBomList.get(0);
+            Long bomId = productBom.getBomId();
+            IpmsBom bom = ipmsBomMapper.selectById(bomId);
+            // 如果查出是 2 级 BOM 那么肯定没有上级了。
+            if (2 == bom.getBomLevel()) {
+                return safeReverseQueryBomVOList;
+            }
+            // 1 级 BOM 单商品的上级，把子件 id 遍历获取集合，这个集合就是 1 级 BOM 单商品的上级 id；
+            if (1 == bom.getBomLevel()) {
+                productBomQueryWrapper = new QueryWrapper<>();
+                productBomQueryWrapper.eq("subcomponent_product_id", productId);
+                List<IpmsProductBom> subcomponentProductBomList = ipmsProductBomService.list(productBomQueryWrapper);
+                for (IpmsProductBom subcomponentProductBom : subcomponentProductBomList) {
+                    Long fatherProductId = subcomponentProductBom.getProductId();
+                    Long fatherBomId = subcomponentProductBom.getBomId();
+                    IpmsProduct fatherProduct = ipmsProductService.getById(fatherProductId);
+                    SafeReverseQueryBomVO safeReverseQueryBomVO = new SafeReverseQueryBomVO();
+                    BeanUtils.copyProperties(fatherProduct, safeReverseQueryBomVO);
+                    safeReverseQueryBomVO.setLevel(1);
+                    IpmsBom fatherBom = ipmsBomMapper.selectById(fatherBomId);
+                    safeReverseQueryBomVO.setBomCode(fatherBom.getBomCode());
+                    safeReverseQueryBomVO.setCheckState(fatherBom.getCheckState());
+                    safeReverseQueryBomVO.setBomRemark(fatherBom.getBomRemark());
+                    safeReverseQueryBomVOList.add(safeReverseQueryBomVO);
+                }
+            }
+        } else {
+            // 否则就是原材料
+            productBomQueryWrapper = new QueryWrapper<>();
+            productBomQueryWrapper.eq("subcomponent_product_id", productId);
+            List<IpmsProductBom> productBoms = ipmsProductBomService.list(productBomQueryWrapper);
+            // 原材料没有作为任何子件，那就是没有上级
+            if (productBoms == null || productBoms.size() <= 0) {
+                return safeReverseQueryBomVOList;
+            } else {
+                for (IpmsProductBom productBom : productBoms) {
+                    Long oneFatherProductId = productBom.getProductId();
+                    Long oneFatherBomId = productBom.getBomId();
+                    IpmsProduct oneFatherProduct = ipmsProductService.getById(oneFatherProductId);
+                    SafeReverseQueryBomVO safeReverseQueryBomVO = new SafeReverseQueryBomVO();
+                    BeanUtils.copyProperties(oneFatherProduct, safeReverseQueryBomVO);
+                    safeReverseQueryBomVO.setLevel(1);
+                    IpmsBom oneFatherBom = ipmsBomMapper.selectById(oneFatherBomId);
+                    safeReverseQueryBomVO.setBomCode(oneFatherBom.getBomCode());
+                    safeReverseQueryBomVO.setCheckState(oneFatherBom.getCheckState());
+                    safeReverseQueryBomVO.setBomRemark(oneFatherBom.getBomRemark());
+                    safeReverseQueryBomVOList.add(safeReverseQueryBomVO);
+                    productBomQueryWrapper = new QueryWrapper<>();
+                    productBomQueryWrapper.eq("subcomponent_bom_id", oneFatherBomId);
+                    List<IpmsProductBom> twoFatherProductBom = ipmsProductBomService.list(productBomQueryWrapper);
+                    if (twoFatherProductBom != null && twoFatherProductBom.size() > 0) {
+                        for (IpmsProductBom ipmsProductBom : twoFatherProductBom) {
+                            Long twoFatherProductId = ipmsProductBom.getProductId();
+                            Long twoFatherBomId = ipmsProductBom.getBomId();
+                            IpmsProduct twoFatherProduct = ipmsProductService.getById(twoFatherProductId);
+                            safeReverseQueryBomVO = new SafeReverseQueryBomVO();
+                            BeanUtils.copyProperties(twoFatherProduct, safeReverseQueryBomVO);
+                            safeReverseQueryBomVO.setLevel(2);
+                            IpmsBom twoFatherBom = ipmsBomMapper.selectById(twoFatherBomId);
+                            safeReverseQueryBomVO.setBomCode(twoFatherBom.getBomCode());
+                            safeReverseQueryBomVO.setCheckState(twoFatherBom.getCheckState());
+                            safeReverseQueryBomVO.setBomRemark(twoFatherBom.getBomRemark());
+                            safeReverseQueryBomVOList.add(safeReverseQueryBomVO);
+                        }
+                    }
+                }
+            }
+        }
+        return safeReverseQueryBomVOList;
     }
 }
 

@@ -381,6 +381,18 @@ public class IpmsProductBomServiceImpl extends ServiceImpl<IpmsProductBomMapper,
         safeProductVOPage.setRecords(safeProductVOList);
         return safeProductVOPage;
     }
+
+    @Override
+    public List<IpmsProductBom> getBomSubComponentMessage(String bomCode) {
+        if (bomCode == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "BOM 编号为空");
+        }
+        List<IpmsProductBom> bomSubComponentMessageList = ipmsProductBomMapper.getBomSubComponentMessage(bomCode);
+        if (bomSubComponentMessageList == null || bomSubComponentMessageList.size() <= 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        return bomSubComponentMessageList;
+    }
 }
 
 

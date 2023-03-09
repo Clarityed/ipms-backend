@@ -27,4 +27,22 @@
         create_time,update_time,check_time,
         is_delete
     </sql>
+
+    <select id="getBomFatherProduct" resultType="com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO">
+        select distinct ipms_bom.bom_code, ipms_product.product_code, ipms_product.product_name, ipms_product.product_specification, ipms_product.product_type, ipms_unit.unit_name, ipms_bom.check_state, ipms_bom.bom_remark
+        from ipms_product_bom
+                 inner join ipms_bom on ipms_bom.bom_id = ipms_product_bom.bom_id
+                 inner join ipms_product on ipms_product.product_id = ipms_product_bom.product_id
+                 inner join ipms_unit on ipms_unit.unit_id = ipms_product.unit_id
+        where ipms_bom.is_delete = 0 and ipms_product.is_delete = 0 and ipms_product_bom.is_delete = 0 and ipms_unit.is_delete = 0 and ipms_bom.bom_code = #{bomCode};
+    </select>
+
+    <select id="getBomOneLevelProduct" resultType="com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO">
+        select distinct ipms_bom.bom_code, ipms_product.product_code, ipms_product.product_name, ipms_product.product_specification, ipms_product.product_type, ipms_unit.unit_name, ipms_bom.check_state, ipms_bom.bom_remark
+        from ipms_product_bom
+                 inner join ipms_bom on ipms_bom.bom_id = ipms_product_bom.bom_id
+                 inner join ipms_product on ipms_product.product_id = ipms_product_bom.product_id
+                 inner join ipms_unit on ipms_unit.unit_id = ipms_product.unit_id
+        where ipms_bom.is_delete = 0 and ipms_product.is_delete = 0 and ipms_product_bom.is_delete = 0 and ipms_unit.is_delete = 0 and ipms_bom.bom_id = #{bomId};
+    </select>
 </mapper>

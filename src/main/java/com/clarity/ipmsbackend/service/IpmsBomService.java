@@ -6,9 +6,12 @@ import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.model.dto.bom.AddBomRequest;
 import com.clarity.ipmsbackend.model.dto.bom.UpdateBomRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsBom;
-import com.clarity.ipmsbackend.model.vo.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO;
+import com.clarity.ipmsbackend.model.vo.bom.SafeReverseQueryBomVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author Clarity
@@ -74,4 +77,20 @@ public interface IpmsBomService extends IService<IpmsBom> {
      * @return
      */
     int reverseCheckBom(long bomId);
+
+    /**
+     * 根据 BOM 编码获取 BOM 层级信息
+     *
+     * @param bomCode
+     * @return
+     */
+    List<SafeForwardQueryBomVO> getBomLevelMessageByBomCode(String bomCode);
+
+    /**
+     * 根据商品编码获取子件的父级 BOM 商品
+     *
+     * @param productCode
+     * @return
+     */
+    List<SafeReverseQueryBomVO> getBomFatherProductOfSubComponentByProductCode(String productCode);
 }

@@ -2,6 +2,7 @@ package com.clarity.ipmsbackend.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.clarity.ipmsbackend.model.entity.IpmsProductBom;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -33,6 +34,14 @@ public interface IpmsProductBomMapper extends BaseMapper<IpmsProductBom> {
      * @return
      */
     List<IpmsProductBom> getTwoLevelBomProduct();
+
+    /**
+     * 获取 BOM 子级相关信息
+     *
+     * @param bomCode
+     * @return
+     */
+    List<IpmsProductBom> getBomSubComponentMessage(@Param("bomCode") String bomCode);
 }
 
 

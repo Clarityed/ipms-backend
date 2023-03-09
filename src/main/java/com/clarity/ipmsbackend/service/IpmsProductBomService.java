@@ -82,4 +82,12 @@ public interface IpmsProductBomService extends IService<IpmsProductBom> {
      * @return
      */
     Page<SafeProductVO> pagingFuzzyQueryCanAsProductOfBomSubComponent(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
+
+    /**
+     * 获取 BOM 单子级相关信息
+     *
+     * @param bomCode
+     * @return
+     */
+    List<IpmsProductBom> getBomSubComponentMessage(String bomCode);
 }

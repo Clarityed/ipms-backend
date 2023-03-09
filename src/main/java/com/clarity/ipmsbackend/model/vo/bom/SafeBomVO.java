@@ -1,5 +1,6 @@
-package com.clarity.ipmsbackend.model.vo;
+package com.clarity.ipmsbackend.model.vo.bom;
 
+import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
