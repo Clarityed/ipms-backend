@@ -65,7 +65,7 @@ public class IpmsWarehouseServiceImpl extends ServiceImpl<IpmsWarehouseMapper, I
         }
         String nextWarehouseCode = null;
         try {
-            nextWarehouseCode = CodeAutoGenerator.literallyCode(warehouseCode);
+            nextWarehouseCode = CodeAutoGenerator.generatorCode(warehouseCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

@@ -197,7 +197,7 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
         }
         String nextEmployeeCode = null;
         try {
-            nextEmployeeCode = CodeAutoGenerator.literallyCode(employeeCode);
+            nextEmployeeCode = CodeAutoGenerator.generatorCode(employeeCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

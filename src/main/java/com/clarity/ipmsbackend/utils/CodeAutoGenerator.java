@@ -9,6 +9,30 @@ package com.clarity.ipmsbackend.utils;
 
 public class CodeAutoGenerator {
 
+    public static String generatorCode(String codeStr) {
+        char[] chars = codeStr.toCharArray();
+        StringBuilder prefix = new StringBuilder();
+        StringBuilder numberStr = new StringBuilder();
+        for (int i = 0; i < chars.length; i++) {
+            // A - a: 65 - 90
+            // 0 - 9: 48 - 57
+            if (chars[i] >= 'A' && chars[i] <= 'Z') {
+                prefix.append(chars[i]);
+            } else {
+                numberStr.append(chars[i]);
+            }
+        }
+        int number = Integer.parseInt(String.valueOf(numberStr)) + 1;
+        String numberStrResult = String.format("%05d", number);
+        return prefix + numberStrResult;
+    }
+
+    public static String generatorCode(String prefix, String date, int number) {
+        String numberStr = String.format("%05d", number);
+        return prefix + "-" + date + "-" + numberStr;
+    }
+
+    @Deprecated
     public static String literallyCode(String codeStr) {
         StringBuilder englishCode = new StringBuilder();
         StringBuilder arabCode = new StringBuilder();

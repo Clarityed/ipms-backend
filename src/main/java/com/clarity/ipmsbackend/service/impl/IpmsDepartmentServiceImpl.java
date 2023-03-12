@@ -183,7 +183,7 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
         }
         String nextDepartmentCode = null;
         try {
-            nextDepartmentCode = CodeAutoGenerator.literallyCode(departmentCode);
+            nextDepartmentCode = CodeAutoGenerator.generatorCode(departmentCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

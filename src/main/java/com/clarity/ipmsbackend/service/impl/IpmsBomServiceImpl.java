@@ -78,7 +78,7 @@ public class IpmsBomServiceImpl extends ServiceImpl<IpmsBomMapper, IpmsBom>
         }
         String nextBomCode = null;
         try {
-            nextBomCode = CodeAutoGenerator.literallyCode(bomCode);
+            nextBomCode = CodeAutoGenerator.generatorCode(bomCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

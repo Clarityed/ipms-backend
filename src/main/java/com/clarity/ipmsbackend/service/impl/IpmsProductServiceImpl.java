@@ -64,7 +64,7 @@ public class IpmsProductServiceImpl extends ServiceImpl<IpmsProductMapper, IpmsP
         }
         String nextProductCode = null;
         try {
-            nextProductCode = CodeAutoGenerator.literallyCode(productCode);
+            nextProductCode = CodeAutoGenerator.generatorCode(productCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

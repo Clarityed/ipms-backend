@@ -62,7 +62,7 @@ public class IpmsWarehousePositionServiceImpl extends ServiceImpl<IpmsWarehouseP
         }
         String nextWarehousePositionCode = null;
         try {
-            nextWarehousePositionCode = CodeAutoGenerator.literallyCode(warehousePositionCode);
+            nextWarehousePositionCode = CodeAutoGenerator.generatorCode(warehousePositionCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

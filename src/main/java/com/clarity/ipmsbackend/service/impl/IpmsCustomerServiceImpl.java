@@ -67,7 +67,7 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
         }
         String nextCustomerCode = null;
         try {
-            nextCustomerCode = CodeAutoGenerator.literallyCode(customerCode);
+            nextCustomerCode = CodeAutoGenerator.generatorCode(customerCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

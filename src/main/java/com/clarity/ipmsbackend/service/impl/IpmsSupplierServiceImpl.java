@@ -66,7 +66,7 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
         }
         String nextSupplierCode = null;
         try {
-            nextSupplierCode = CodeAutoGenerator.literallyCode(supplierCode);
+            nextSupplierCode = CodeAutoGenerator.generatorCode(supplierCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

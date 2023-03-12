@@ -272,14 +272,14 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
         List<IpmsUser> ipmsUserList = ipmsUserMapper.selectList(userQueryWrapper);
         String userCode;
         if (ipmsUserList.size() == 0) {
-            userCode = "KH00000";
+            userCode = "YH00000";
         } else {
             IpmsUser lastUser = ipmsUserList.get(ipmsUserList.size() - 1);
             userCode = lastUser.getUserCode();
         }
         String nextUserCode = null;
         try {
-             nextUserCode = CodeAutoGenerator.literallyCode(userCode);
+             nextUserCode = CodeAutoGenerator.generatorCode(userCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }

@@ -56,7 +56,7 @@ public class IpmsUnitServiceImpl extends ServiceImpl<IpmsUnitMapper, IpmsUnit>
         }
         String nextUnitCode = null;
         try {
-            nextUnitCode = CodeAutoGenerator.literallyCode(unitCode);
+            nextUnitCode = CodeAutoGenerator.generatorCode(unitCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }
