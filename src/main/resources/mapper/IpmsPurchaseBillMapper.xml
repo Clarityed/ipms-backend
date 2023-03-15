@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsPurchaseBillMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsPurchaseBill">
+            <id property="purchaseBillId" column="purchase_bill_id" jdbcType="BIGINT"/>
+            <result property="purchaseSourceBillId" column="purchase_source_bill_id" jdbcType="BIGINT"/>
+            <result property="purchaseBillCode" column="purchase_bill_code" jdbcType="VARCHAR"/>
+            <result property="purchaseBillDate" column="purchase_bill_date" jdbcType="VARCHAR"/>
+            <result property="supplierId" column="supplier_id" jdbcType="BIGINT"/>
+            <result property="purchaseBillSettlementDate" column="purchase_bill_settlement_date" jdbcType="VARCHAR"/>
+            <result property="employeeId" column="employee_id" jdbcType="BIGINT"/>
+            <result property="departmentId" column="department_id" jdbcType="BIGINT"/>
+            <result property="purchaseBillRemark" column="purchase_bill_remark" jdbcType="VARCHAR"/>
+            <result property="purchaseBillCurrencyType" column="purchase_bill_currency_type" jdbcType="VARCHAR"/>
+            <result property="purchaseBillExchangeRate" column="purchase_bill_exchange_rate" jdbcType="DECIMAL"/>
+            <result property="purchaseBillTransactionAmount" column="purchase_bill_transaction_amount" jdbcType="DECIMAL"/>
+            <result property="purchaseBillReturnReason" column="purchase_bill_return_reason" jdbcType="VARCHAR"/>
+            <result property="purchaseBillType" column="purchase_bill_type" jdbcType="VARCHAR"/>
+            <result property="founder" column="founder" jdbcType="VARCHAR"/>
+            <result property="modifier" column="modifier" jdbcType="VARCHAR"/>
+            <result property="checker" column="checker" jdbcType="VARCHAR"/>
+            <result property="checkState" column="check_state" jdbcType="TINYINT"/>
+            <result property="executionState" column="execution_state" jdbcType="TINYINT"/>
+            <result property="warehousingState" column="warehousing_state" jdbcType="TINYINT"/>
+            <result property="offState" column="off_state" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="checkTime" column="check_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        purchase_bill_id,purchase_source_bill_id,purchase_bill_code,
+        purchase_bill_date,supplier_id,purchase_bill_settlement_date,
+        employee_id,department_id,purchase_bill_remark,
+        purchase_bill_currency_type,purchase_bill_exchange_rate,purchase_bill_transaction_amount,
+        purchase_bill_return_reason,purchase_bill_type,founder,
+        modifier,checker,check_state,
+        execution_state,warehousing_state,off_state,
+        create_time,update_time,check_time,
+        is_delete
+    </sql>
+</mapper>

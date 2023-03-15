@@ -1,5 +1,7 @@
 package com.clarity.ipmsbackend.utils;
 
+import java.util.Date;
+
 /**
  * 编码自动生成器
  *
@@ -9,6 +11,12 @@ package com.clarity.ipmsbackend.utils;
 
 public class CodeAutoGenerator {
 
+    /**
+     * 提供业务资料和商品资料使用
+     *
+     * @param codeStr
+     * @return
+     */
     public static String generatorCode(String codeStr) {
         char[] chars = codeStr.toCharArray();
         StringBuilder prefix = new StringBuilder();
@@ -27,9 +35,10 @@ public class CodeAutoGenerator {
         return prefix + numberStrResult;
     }
 
-    public static String generatorCode(String prefix, String date, int number) {
-        String numberStr = String.format("%05d", number);
-        return prefix + "-" + date + "-" + numberStr;
+    public static String generatorCode(String prefix, String dateStr, String numberStr) {
+        int number = Integer.parseInt(numberStr) + 1;
+        String numberStrResult = String.format("%05d", number);
+        return prefix + "-" + dateStr + "-" + numberStrResult;
     }
 
     @Deprecated
