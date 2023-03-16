@@ -36,11 +36,6 @@ public class IpmsProductInventory implements Serializable {
     private Long productId;
 
     /**
-     * 商品库存总量
-     */
-    private BigDecimal productInventoryTotalNum;
-
-    /**
      * 商品库存剩余数量
      */
     private BigDecimal productInventorySurplusNum;
@@ -54,11 +49,6 @@ public class IpmsProductInventory implements Serializable {
      * 商品成本
      */
     private BigDecimal productInventoryCost;
-
-    /**
-     * 商品总成本
-     */
-    private BigDecimal productInventoryTotalCost;
 
     /**
      * 创建时间

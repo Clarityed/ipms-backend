@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -214,6 +215,38 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
         Page<SafeSupplierVO> safeSupplierVOPage = new PageDTO<>(supplierPage.getCurrent(), supplierPage.getSize(), supplierPage.getTotal());
         safeSupplierVOPage.setRecords(safeSupplierVOList);
         return safeSupplierVOPage;
+    }
+
+    @Override
+    public int addEnterprisePayBalance(long supplierId, double enterprisePayBalance) {
+        IpmsSupplier supplier = ipmsSupplierMapper.selectById(supplierId);
+        if (supplier == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "供应商不存在");
+        }
+        BigDecimal oldEnterprisePayBalance = supplier.getEnterprisePayBalance();
+        BigDecimal newEnterprisePayBalance = oldEnterprisePayBalance.add(new BigDecimal(String.valueOf(enterprisePayBalance)));
+        supplier.setEnterprisePayBalance(newEnterprisePayBalance);
+        int result = ipmsSupplierMapper.updateById(supplier);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新企业应付供应商金额失败");
+        }
+        return result;
+    }
+
+    @Override
+    public int reduceEnterprisePayBalance(long supplierId, double enterprisePayBalance) {
+        IpmsSupplier supplier = ipmsSupplierMapper.selectById(supplierId);
+        if (supplier == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "供应商不存在");
+        }
+        BigDecimal oldEnterprisePayBalance = supplier.getEnterprisePayBalance();
+        BigDecimal newEnterprisePayBalance = oldEnterprisePayBalance.subtract(new BigDecimal(String.valueOf(enterprisePayBalance)));
+        supplier.setEnterprisePayBalance(newEnterprisePayBalance);
+        int result = ipmsSupplierMapper.updateById(supplier);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新企业应付供应商金额失败");
+        }
+        return result;
     }
 }
 

@@ -56,4 +56,22 @@ public interface IpmsSupplierService extends IService<IpmsSupplier> {
      * @return
      */
     Page<SafeSupplierVO> pagingFuzzyQuery(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
+
+    /**
+     * 实现供应商金额的增加
+     *
+     * @param supplierId
+     * @param enterprisePayBalance
+     * @return
+     */
+    int addEnterprisePayBalance(long supplierId, double enterprisePayBalance);
+
+    /**
+     * 实现供应商金额的减少
+     *
+     * @param supplierId
+     * @param enterprisePayBalance
+     * @return
+     */
+    int reduceEnterprisePayBalance(long supplierId, double enterprisePayBalance);
 }

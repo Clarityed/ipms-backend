@@ -84,4 +84,39 @@ public class IpmsPurchaseBillController {
         int result = ipmsPurchaseBillService.checkPurchaseBill(purchaseBillId, request);
         return ResultUtils.success(result);
     }
+
+    /**
+     * 反审核采购单据（采购主管）
+     *
+     * @param purchaseBillId
+     * @param request
+     * @return
+     */
+    @GetMapping("/reverseCheckPurchaseBill/{purchaseBillId}")
+    @ApiOperation("反审核采购单据（采购主管）")
+    @AuthCheck(mustRole = UserConstant.BUY_ROLE_SUPER)
+    public BaseResponse<Integer> reverseCheckPurchaseBill(@PathVariable("purchaseBillId") long purchaseBillId, HttpServletRequest request) {
+        if (request == null || purchaseBillId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空或者 id 不合法");
+        }
+        int result = ipmsPurchaseBillService.reverseCheckPurchaseBill(purchaseBillId, request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 根据 id 删除采购单据（采购员、采购主管）
+     *
+     * @param id
+     * @return
+     */
+    @DeleteMapping("/deletePurchaseBillById/{id}")
+    @ApiOperation(value = "根据 id 删除采购单据（采购员、采购主管）")
+    @AuthCheck(anyRole = {UserConstant.BUY_ROLE, UserConstant.BUY_ROLE_SUPER})
+    public BaseResponse<Integer> deletePurchaseBillById(@PathVariable("id") long id) {
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
+        }
+        int result = ipmsPurchaseBillService.deletePurchaseBillById(id);
+        return ResultUtils.success(result);
+    }
 }

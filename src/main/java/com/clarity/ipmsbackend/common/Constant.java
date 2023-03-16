@@ -43,4 +43,14 @@ public class Constant {
      * 已审核 checked
      */
     public static final int CHECKED = 1;
+
+    /**
+     * 审核操作
+     */
+    public static final String CHECK_OPERATION = "审核操作";
+
+    /**
+     * 反审核操作
+     */
+    public static final String UNCHECKED_OPERATION = "反审核操作";
 }

@@ -274,6 +274,8 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         IpmsPurchaseBill checkingPurchaseBill = new IpmsPurchaseBill();
         checkingPurchaseBill.setPurchaseBillId(purchaseBill.getPurchaseBillId());
         checkingPurchaseBill.setCheckState(Constant.CHECKED);
+        // 定义一个变量用于存放采购入库单或者采购退货单，供应商应该增加或者减少企业应付款金额
+        double enterprisePayBalance = 0;
         if (PurchaseBillConstant.PURCHASE_RECEIPT_ORDER.equals(purchaseBillType)) {
             // 审核后要修改采购订单的入库状态
             QueryWrapper<IpmsPurchaseBill> purchaseBillQueryWrapper = new QueryWrapper<>();
@@ -299,8 +301,9 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             for (IpmsPurchaseBillProductNum currentCheckingPurchaseBillProduct : currentCheckingPurchaseBillProductList) {
                 checkedPurchaseBillProductNum += currentCheckingPurchaseBillProduct.getNeedWarehousingProductNum().doubleValue();
                 // 并且调用增加库存的方法
-                int addProductInventoryResult = ipmsProductInventoryService.addProductInventory(currentCheckingPurchaseBillProduct);
-                if (addProductInventoryResult != 1) {
+                BigDecimal onePurchaseBillProductCost = ipmsProductInventoryService.addProductInventory(currentCheckingPurchaseBillProduct);
+                enterprisePayBalance += onePurchaseBillProductCost.doubleValue();
+                if (onePurchaseBillProductCost.doubleValue() <= 0) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用增加库存的方法失败");
                 }
             }
@@ -312,14 +315,21 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                 needWarehousingProductNum += sourcePurchaseBillProduct.getNeedWarehousingProductNum().doubleValue();
             }
             IpmsPurchaseBill sourcePurchaseBill = ipmsPurchaseBillMapper.selectById(purchaseBill.getPurchaseSourceBillId());
-            if (checkedPurchaseBillProductNum == needWarehousingProductNum) {
-                sourcePurchaseBill.setWarehousingState(Constant.FULL_OPERATED);
-            } else {
-                sourcePurchaseBill.setWarehousingState(Constant.PART_OPERATED);
+            if (sourcePurchaseBill != null) {
+                if (checkedPurchaseBillProductNum == needWarehousingProductNum) {
+                    sourcePurchaseBill.setWarehousingState(Constant.FULL_OPERATED);
+                } else {
+                    sourcePurchaseBill.setWarehousingState(Constant.PART_OPERATED);
+                }
+                int validSourceState = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
+                if (validSourceState != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "入库状态更新失败");
+                }
             }
-            int validSourceState = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
-            if (validSourceState != 1) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "入库状态更新失败");
+            // 调用供应商模块业务接口，实现金额的增加
+            int result = ipmsSupplierService.addEnterprisePayBalance(purchaseBill.getSupplierId(), enterprisePayBalance);
+            if (result != 1) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "增加供应商金额失败");
             }
         } else if (PurchaseBillConstant.PURCHASE_RETURN_ORDER.equals(purchaseBillType)) {
             // 采购退货单审核后要调用减少库存的方法
@@ -327,10 +337,16 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseBillId);
             List<IpmsPurchaseBillProductNum> purchaseReturnProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
             for (IpmsPurchaseBillProductNum purchaseReturnProduct : purchaseReturnProductList) {
-                int reduceProductInventoryResult = ipmsProductInventoryService.reduceProductInventory(purchaseReturnProduct);
-                if (reduceProductInventoryResult != 1) {
+                BigDecimal onePurchaseBillProductCost = ipmsProductInventoryService.reduceProductInventory(purchaseReturnProduct);
+                enterprisePayBalance += onePurchaseBillProductCost.doubleValue();
+                if (onePurchaseBillProductCost.doubleValue() <= 0) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用减少库存的方法失败");
                 }
+            }
+            // 调用供应商模块减少商品
+            int result = ipmsSupplierService.reduceEnterprisePayBalance(purchaseBill.getSupplierId(), enterprisePayBalance);
+            if (result != 1) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少供应商金额失败");
             }
         }
         SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
@@ -342,8 +358,232 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         }
         return result;
     }
+
+    @Override
+    @Transactional
+    public int reverseCheckPurchaseBill(long purchaseBillId, HttpServletRequest request) {
+        if (purchaseBillId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据 id 不合法");
+        }
+        IpmsPurchaseBill purchaseBill = ipmsPurchaseBillMapper.selectById(purchaseBillId);
+        if (purchaseBill == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if (Constant.UNCHECKED == purchaseBill.getCheckState()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据未审核");
+        }
+        String purchaseBillType = purchaseBill.getPurchaseBillType();
+        IpmsPurchaseBill unCheckingPurchaseBill = new IpmsPurchaseBill();
+        unCheckingPurchaseBill.setPurchaseBillId(purchaseBill.getPurchaseBillId());
+        unCheckingPurchaseBill.setCheckState(Constant.UNCHECKED);
+        // 如果采购订单已经作为其他单据的源单，那么无法反审核，关闭的采购订单更是无法反审核，因为它肯定拥有源单
+        // 采购入库单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。
+        // 采购退货单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。（没有这种情况，采购退库单不作为其他单源）
+        QueryWrapper<IpmsPurchaseBill> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("purchase_source_bill_id", purchaseBillId);
+        List<IpmsPurchaseBill> isAsSourceBill = ipmsPurchaseBillMapper.selectList(queryWrapper);
+        if (isAsSourceBill != null && isAsSourceBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "单据已经作为其他单据的单源使用");
+        }
+        // 定义一个变量用于存放采购入库单或者采购退货单，供应商应该增加或者减少企业应付款金额
+        double enterprisePayBalance = 0;
+        if (PurchaseBillConstant.PURCHASE_RECEIPT_ORDER.equals(purchaseBillType)) {
+            // 反审核的话必须将对于的源单剩余还有多少商品未被引用的数量恢复
+            // 1. 遍历采购入库单入库商品及数量
+            QueryWrapper<IpmsPurchaseBillProductNum> purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+            purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseBillId);
+            List<IpmsPurchaseBillProductNum> purchaseBillReceiptProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+            // 2. 遍历里面的每一个商品与源单商品做对比相同的数量恢复，并且减少库存
+            for (IpmsPurchaseBillProductNum purchaseBillReceiptProduct : purchaseBillReceiptProductList) {
+                BigDecimal onePurchaseBillProductCost = ipmsProductInventoryService.reduceProductInventory(purchaseBillReceiptProduct);
+                enterprisePayBalance += onePurchaseBillProductCost.doubleValue();
+                if (onePurchaseBillProductCost.doubleValue() <= 0) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "采购入库单反审核减少库存失败");
+                }
+            }
+            // 修改源单状态为原来的状态
+            // 1. 查询已经审核的采购入库单的所有商品，如果采购入库单数量大于 1 且全部是已审核的单据，那把入库状态改为部分入库
+            //    如果采购入库单已审核的单据数量大于 1 且只剩下 1 单了，那么入库状态改为，未入库
+            Long purchaseSourceBillId = purchaseBill.getPurchaseSourceBillId();
+            if (purchaseSourceBillId != null && purchaseSourceBillId > 0) {
+                queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("purchase_source_bill_id", purchaseSourceBillId);
+                queryWrapper.eq("check_state", Constant.CHECKED);
+                long checkedCount = ipmsPurchaseBillMapper.selectCount(queryWrapper);
+                queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("purchase_source_bill_id", purchaseSourceBillId);
+                Long checkedAndUncheckedCount = ipmsPurchaseBillMapper.selectCount(queryWrapper);
+                IpmsPurchaseBill sourcePurchaseBill;
+                if (checkedAndUncheckedCount == 1) {
+                    sourcePurchaseBill = new IpmsPurchaseBill();
+                    sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
+                    sourcePurchaseBill.setWarehousingState(Constant.NOT_OPERATED);
+                    int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核采购入库单，状态修改失败");
+                    }
+                } else if (checkedAndUncheckedCount > 1 && checkedCount > 1) {
+                    sourcePurchaseBill = new IpmsPurchaseBill();
+                    sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
+                    sourcePurchaseBill.setWarehousingState(Constant.PART_OPERATED);
+                    int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核采购入库单，状态修改失败");
+                    }
+                } else {
+                    sourcePurchaseBill = new IpmsPurchaseBill();
+                    sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
+                    sourcePurchaseBill.setWarehousingState(Constant.NOT_OPERATED);
+                    int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核采购入库单，状态修改失败");
+                    }
+                }
+            }
+            // 调用供应商模块减少商品
+            int result = ipmsSupplierService.reduceEnterprisePayBalance(purchaseBill.getSupplierId(), enterprisePayBalance);
+            if (result != 1) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少供应商金额失败");
+            }
+        } else if (PurchaseBillConstant.PURCHASE_RETURN_ORDER.equals(purchaseBillType)) {
+            // 采购退货单反审核后要调用增加库存的方法
+            // 1. 遍历采购退货单商品及数量
+            QueryWrapper<IpmsPurchaseBillProductNum> purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+            purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseBillId);
+            List<IpmsPurchaseBillProductNum> purchaseBillReturnProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+            // 2. 遍历里面的每一个商品与源单商品做对比相同的数量恢复，并且增加库存
+            for (IpmsPurchaseBillProductNum purchaseBillReturnProduct : purchaseBillReturnProductList) {
+                BigDecimal onePurchaseBillProductCost = ipmsProductInventoryService.addProductInventory(purchaseBillReturnProduct);
+                enterprisePayBalance += onePurchaseBillProductCost.doubleValue();
+                if (onePurchaseBillProductCost.doubleValue() <= 0) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "采购退货单反审核增加库存失败");
+                }
+            }
+            // 调用供应商模块业务接口，实现金额的增加
+            int result = ipmsSupplierService.addEnterprisePayBalance(purchaseBill.getSupplierId(), enterprisePayBalance);
+            if (result != 1) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "增加供应商金额失败");
+            }
+        }
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        unCheckingPurchaseBill.setChecker(loginUser.getUserName());
+        unCheckingPurchaseBill.setCheckTime(new Date());
+        int result = ipmsPurchaseBillMapper.updateById(unCheckingPurchaseBill);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public int deletePurchaseBillById(long id) {
+        // 1. 判断 id 是否合法
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
+        }
+        // 2. 审核后的单据无法删除
+        IpmsPurchaseBill oldPurchaseBill = ipmsPurchaseBillMapper.selectById(id);
+        if (oldPurchaseBill == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if (oldPurchaseBill.getCheckState().equals(Constant.CHECKED)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据已经审核无法删除");
+        }
+        // 3. 按照单据类型分类别删除
+        String purchaseBillType = oldPurchaseBill.getPurchaseBillType();
+        Long purchaseSourceBillId = oldPurchaseBill.getPurchaseSourceBillId();
+        QueryWrapper<IpmsPurchaseBillProductNum> purchaseBillProductNumQueryWrapper;
+        if (PurchaseBillConstant.PURCHASE_RECEIPT_ORDER.equals(purchaseBillType)) {
+            if (purchaseSourceBillId != null) {
+                purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", id);
+                List<IpmsPurchaseBillProductNum> purchaseReceiptBillProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+                for (IpmsPurchaseBillProductNum purchaseReceiptBillProductNum : purchaseReceiptBillProductList) {
+                    purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                    purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseSourceBillId);
+                    purchaseBillProductNumQueryWrapper.eq("product_id", purchaseReceiptBillProductNum.getProductId());
+                    purchaseBillProductNumQueryWrapper.eq("warehouse_id", purchaseReceiptBillProductNum.getWarehouseId());
+                    if (purchaseReceiptBillProductNum.getWarehousePositionId() != null) {
+                        purchaseBillProductNumQueryWrapper.eq("warehouse_position_id", purchaseReceiptBillProductNum.getWarehouseId());
+                    }
+                    // 采购订单的商品也就是源单的商品
+                    IpmsPurchaseBillProductNum sourceProductOfOne = ipmsPurchaseBillProductNumService.getOne(purchaseBillProductNumQueryWrapper);
+                    // 修改源单商品数量为未必采购入库单引用的剩余数量
+                    BigDecimal oldSurplusNeedWarehousingProductNum = sourceProductOfOne.getSurplusNeedWarehousingProductNum();
+                    sourceProductOfOne.setSurplusNeedWarehousingProductNum(oldSurplusNeedWarehousingProductNum.add(purchaseReceiptBillProductNum.getNeedWarehousingProductNum()));
+                    boolean recoverSourceProductNumResult = ipmsPurchaseBillProductNumService.updateById(sourceProductOfOne);
+                    if (!recoverSourceProductNumResult) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "恢复采购订单剩余数量失败");
+                    }
+                }
+                // 修改采购订单状态
+                purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseSourceBillId);
+                List<IpmsPurchaseBillProductNum> sourceProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+                int temp = 0;
+                for (IpmsPurchaseBillProductNum sourceProduct : sourceProductList) {
+                    temp++;
+                    IpmsPurchaseBill sourcePurchaseBill;
+                    if (!sourceProduct.getNeedWarehousingProductNum().equals(sourceProduct.getSurplusNeedWarehousingProductNum())) {
+                        sourcePurchaseBill = new IpmsPurchaseBill();
+                        sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
+                        // 设置执行状态和关闭状态
+                        sourcePurchaseBill.setExecutionState(Constant.PART_OPERATED);
+                        sourcePurchaseBill.setOffState(Constant.NOT_CLOSED);
+                        int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
+                        if (result != 1) {
+                            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除采购入库单，状态修改失败");
+                        }
+                        break;
+                    }
+                    if (temp == sourceProductList.size()) {
+                        sourcePurchaseBill = new IpmsPurchaseBill();
+                        sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
+                        sourcePurchaseBill.setExecutionState(Constant.NOT_OPERATED);
+                        sourcePurchaseBill.setOffState(Constant.NOT_CLOSED);
+                        int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
+                        if (result != 1) {
+                            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除采购入库单，状态修改失败");
+                        }
+                    }
+                }
+            }
+        } else if (PurchaseBillConstant.PURCHASE_RETURN_ORDER.equals(purchaseBillType)) {
+            if (purchaseSourceBillId != null) {
+                purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", id);
+                List<IpmsPurchaseBillProductNum> purchaseReceiptBillProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+                for (IpmsPurchaseBillProductNum purchaseReceiptBillProductNum : purchaseReceiptBillProductList) {
+                    purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                    purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseSourceBillId);
+                    purchaseBillProductNumQueryWrapper.eq("product_id", purchaseReceiptBillProductNum.getProductId());
+                    purchaseBillProductNumQueryWrapper.eq("warehouse_id", purchaseReceiptBillProductNum.getWarehouseId());
+                    if (purchaseReceiptBillProductNum.getWarehousePositionId() != null) {
+                        purchaseBillProductNumQueryWrapper.eq("warehouse_position_id", purchaseReceiptBillProductNum.getWarehouseId());
+                    }
+                    // 采购入库单的商品也就是源单的商品
+                    IpmsPurchaseBillProductNum sourceProductOfOne = ipmsPurchaseBillProductNumService.getOne(purchaseBillProductNumQueryWrapper);
+                    // 修改源单商品数量为未必采购入库单引用的剩余数量
+                    BigDecimal oldSurplusNeedWarehousingProductNum = sourceProductOfOne.getSurplusNeedWarehousingProductNum();
+                    sourceProductOfOne.setSurplusNeedWarehousingProductNum(oldSurplusNeedWarehousingProductNum.add(purchaseReceiptBillProductNum.getNeedWarehousingProductNum()));
+                    boolean recoverSourceProductNumResult = ipmsPurchaseBillProductNumService.updateById(sourceProductOfOne);
+                    if (!recoverSourceProductNumResult) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "恢复采购订单剩余数量失败");
+                    }
+                }
+            }
+        }
+        int result = ipmsPurchaseBillMapper.deleteById(id);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
+        }
+        purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+        purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", id);
+        boolean remove = ipmsPurchaseBillProductNumService.remove(purchaseBillProductNumQueryWrapper);
+        if (!remove) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "关联删除失败");
+        }
+        return result;
+    }
 }
-
-
-
-

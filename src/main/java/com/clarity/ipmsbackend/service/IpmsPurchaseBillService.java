@@ -37,4 +37,20 @@ public interface IpmsPurchaseBillService extends IService<IpmsPurchaseBill> {
      * @return 1 - 成功， 0 - 失败
      */
     int checkPurchaseBill(long purchaseBillId, HttpServletRequest request);
+
+    /**
+     * 反审核采购单据
+     *
+     * @param purchaseBillId 采购单据 id
+     * @return 1 - 成功， 0 - 失败
+     */
+    int reverseCheckPurchaseBill(long purchaseBillId, HttpServletRequest request);
+
+    /**
+     * 根据 id 删除 采购单据
+     *
+     * @param id 单据 id
+     * @return 1 - 成功， 0 - 失败
+     */
+    int deletePurchaseBillById(long id);
 }

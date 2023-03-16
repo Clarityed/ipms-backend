@@ -9,11 +9,9 @@
             <result property="warehouseId" column="warehouse_id" jdbcType="BIGINT"/>
             <result property="warehousePositionId" column="warehouse_position_id" jdbcType="BIGINT"/>
             <result property="productId" column="product_id" jdbcType="BIGINT"/>
-            <result property="productInventoryTotalNum" column="product_inventory_total_num" jdbcType="DECIMAL"/>
             <result property="productInventorySurplusNum" column="product_inventory_surplus_num" jdbcType="DECIMAL"/>
             <result property="productInventoryUnitCost" column="product_inventory_unit_cost" jdbcType="DECIMAL"/>
             <result property="productInventoryCost" column="product_inventory_cost" jdbcType="DECIMAL"/>
-            <result property="productInventoryTotalCost" column="product_inventory_total_cost" jdbcType="DECIMAL"/>
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
@@ -21,8 +19,8 @@
 
     <sql id="Base_Column_List">
         product_inventory_id,warehouse_id,warehouse_position_id,
-        product_id,product_inventory_total_num,product_inventory_surplus_num,
-        product_inventory_unit_cost,product_inventory_cost,product_inventory_total_cost,
-        create_time,update_time,is_delete
+        product_id,product_inventory_surplus_num,product_inventory_unit_cost,
+        product_inventory_cost,create_time,update_time,
+        is_delete
     </sql>
 </mapper>
