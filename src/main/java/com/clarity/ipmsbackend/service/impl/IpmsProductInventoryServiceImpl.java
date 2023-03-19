@@ -34,7 +34,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
     private IpmsWarehouseService ipmsWarehouseService;
 
     @Override
-    public BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum) {
+    public BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate) {
         Long productId = purchaseBillProductNum.getProductId();
         Long warehouseId = purchaseBillProductNum.getWarehouseId();
         Long warehousePositionId = purchaseBillProductNum.getWarehousePositionId();
@@ -53,6 +53,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
             // 增加商品成本，会增加和减少
             BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost();
             BigDecimal currentPurchaseProductCost = unitPrice.multiply(needWarehousingProductNum);
+            // BigDecimal newProductInventoryCost = oldProductInventoryCost.add(currentPurchaseProductCost.multiply(purchaseBillExchangeRate));
             BigDecimal newProductInventoryCost = oldProductInventoryCost.add(currentPurchaseProductCost);
             productInventory.setProductInventoryCost(newProductInventoryCost);
             // 增加商品剩余数量，会增加和减少
@@ -79,6 +80,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
             productInventory.setProductInventorySurplusNum(needWarehousingProductNum);
             productInventory.setProductInventoryUnitCost(unitPrice);
             BigDecimal cost = unitPrice.multiply(needWarehousingProductNum);
+            // productInventory.setProductInventoryCost(cost.multiply(purchaseBillExchangeRate));
             productInventory.setProductInventoryCost(cost);
             productInventory.setCreateTime(new Date());
             productInventory.setUpdateTime(new Date());
@@ -91,7 +93,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
     }
 
     @Override
-    public BigDecimal reduceProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum) {
+    public BigDecimal reduceProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate) {
         Long productId = purchaseBillProductNum.getProductId();
         Long warehouseId = purchaseBillProductNum.getWarehouseId();
         Long warehousePositionId = purchaseBillProductNum.getWarehousePositionId();
@@ -112,6 +114,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         // 目前的库存商品成本减少
         BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost();
         BigDecimal currentPurchaseProductCost = unitPrice.multiply(needWarehousingProductNum);
+        // BigDecimal newProductInventoryCost = oldProductInventoryCost.subtract(currentPurchaseProductCost.multiply(purchaseBillExchangeRate));
         BigDecimal newProductInventoryCost = oldProductInventoryCost.subtract(currentPurchaseProductCost);
         productInventory.setProductInventoryCost(newProductInventoryCost);
         // 目前的库存商品数量减少

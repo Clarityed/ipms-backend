@@ -99,9 +99,9 @@ public class AddPurchaseBillRequest implements Serializable {
     private String purchaseBillType;
 
     /**
-     * 采购单据的商品及商品数量
+     * 增加采购单据的商品及商品数量
      */
-    @ApiModelProperty("采购单据的商品及商品数量列表")
+    @ApiModelProperty("增加采购单据的商品及商品数量列表")
     private List<AddProductNumRequest> addProductNumRequestList;
 
     private static final long serialVersionUID = 1L;

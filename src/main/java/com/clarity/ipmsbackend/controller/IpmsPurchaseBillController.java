@@ -8,6 +8,7 @@ import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.bom.AddBomRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.AddPurchaseBillRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.UpdatePurchaseBillRequest;
 import com.clarity.ipmsbackend.service.IpmsPurchaseBillService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -117,6 +118,24 @@ public class IpmsPurchaseBillController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
         int result = ipmsPurchaseBillService.deletePurchaseBillById(id);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 修改采购单据（采购员、采购主管）
+     *
+     * @param updatePurchaseBillRequest
+     * @param request
+     * @return
+     */
+    @PutMapping("/updatePurchaseBill")
+    @ApiOperation("修改采购单据（采购员、采购主管）")
+    @AuthCheck(anyRole = {UserConstant.BUY_ROLE, UserConstant.BUY_ROLE_SUPER})
+    public BaseResponse<Integer> updatePurchaseBill(@RequestBody UpdatePurchaseBillRequest updatePurchaseBillRequest, HttpServletRequest request) {
+        if (updatePurchaseBillRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int result = ipmsPurchaseBillService.updatePurchaseBill(updatePurchaseBillRequest, request);
         return ResultUtils.success(result);
     }
 }

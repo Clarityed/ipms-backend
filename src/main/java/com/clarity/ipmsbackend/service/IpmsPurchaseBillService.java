@@ -2,6 +2,7 @@ package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.clarity.ipmsbackend.model.dto.purchasebill.AddPurchaseBillRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.UpdatePurchaseBillRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBill;
 
 import javax.servlet.http.HttpServletRequest;
@@ -53,4 +54,13 @@ public interface IpmsPurchaseBillService extends IService<IpmsPurchaseBill> {
      * @return 1 - 成功， 0 - 失败
      */
     int deletePurchaseBillById(long id);
+
+    /**
+     * 修改采购单据
+     *
+     * @param updatePurchaseBillRequest 修改采购单据请求封装对象
+     * @param request HttpServletRequest
+     * @return 1 - 成功， 0 - 失败
+     */
+    int updatePurchaseBill(UpdatePurchaseBillRequest updatePurchaseBillRequest, HttpServletRequest request);
 }

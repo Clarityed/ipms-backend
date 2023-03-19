@@ -17,17 +17,19 @@ public interface IpmsProductInventoryService extends IService<IpmsProductInvento
      * 增加商品库存
      *
      * @param purchaseBillProductNum 商品及商品数量
+     * @param purchaseBillExchangeRate 金额汇率
      * @return 单据中的某一个本次商品总价
      */
-    BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum);
+    BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate);
 
     /**
      * 减少商品库存
      *
      * @param purchaseBillProductNum 商品及商品数量
+     * @param purchaseBillExchangeRate 金额汇率
      * @return 单据中的某一个本次商品总价
      */
-    BigDecimal reduceProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum);
+    BigDecimal reduceProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate);
 
     /**
      * 提供一个方法对仓库的记录进行删除，但是只允许删除剩余库存数为 0 的库存记录，为负库存，代表使用超过了当前库存，应该采购
