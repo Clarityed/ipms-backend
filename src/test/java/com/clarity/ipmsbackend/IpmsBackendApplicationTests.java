@@ -1,7 +1,10 @@
 package com.clarity.ipmsbackend;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.clarity.ipmsbackend.mapper.IpmsBomMapper;
 import com.clarity.ipmsbackend.mapper.IpmsProductBomMapper;
+import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
+import com.clarity.ipmsbackend.service.IpmsProductInventoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -15,6 +18,9 @@ class IpmsBackendApplicationTests {
 
     @Resource
     private IpmsProductBomMapper ipmsProductBomMapper;
+
+    @Resource
+    private IpmsProductInventoryService ipmsProductInventoryService;
 
     @Test
     void contextLoads() {
@@ -37,7 +43,13 @@ class IpmsBackendApplicationTests {
 //        System.out.println(bomSubComponentMessage);
 //        List<SafeForwardQueryBomVO> bomOneLevelProduct = ipmsBomMapper.getBomOneLevelProduct(32L);
 //        System.out.println(bomOneLevelProduct);
-        System.out.println(IpmsBackendApplicationTests.literallyCode("SCDD", "20230312", 1));
+//        System.out.println(IpmsBackendApplicationTests.literallyCode("SCDD", "20230312", 1));
+        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+        productInventoryQueryWrapper.eq("warehouse_position_id", 1L);
+        productInventoryQueryWrapper.eq("warehouse_id", 1L);
+        productInventoryQueryWrapper.eq("product_id", 1L);
+        IpmsProductInventory one = ipmsProductInventoryService.getOne(productInventoryQueryWrapper);
+        System.out.println(one);
     }
 
     public static String literallyCode(String prefix, String date, int number) {

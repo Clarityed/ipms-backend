@@ -1,9 +1,12 @@
 package com.clarity.ipmsbackend.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.clarity.ipmsbackend.common.PurchaseBillQueryRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.AddPurchaseBillRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.UpdatePurchaseBillRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBill;
+import com.clarity.ipmsbackend.model.vo.purchasebill.SafePurchaseBillVO;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -63,4 +66,12 @@ public interface IpmsPurchaseBillService extends IService<IpmsPurchaseBill> {
      * @return 1 - 成功， 0 - 失败
      */
     int updatePurchaseBill(UpdatePurchaseBillRequest updatePurchaseBillRequest, HttpServletRequest request);
+
+    /**
+     * 采购单据查询（可作为选单源功能，采购单据列表查询功能，并且也支持模糊查询）
+     *
+     * @param purchaseBillQueryRequest 采购单据查询请求
+     * @return 为选单源提供的列表
+     */
+    Page<SafePurchaseBillVO> selectPurchaseBill(PurchaseBillQueryRequest purchaseBillQueryRequest);
 }

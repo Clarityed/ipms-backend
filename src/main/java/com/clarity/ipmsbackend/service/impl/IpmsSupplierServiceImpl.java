@@ -21,6 +21,7 @@ import com.clarity.ipmsbackend.service.IpmsSupplierLinkmanService;
 import com.clarity.ipmsbackend.service.IpmsSupplierService;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
+import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -205,6 +206,7 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
                 for (IpmsSupplierLinkman supplierLinkman : supplierLinkmanList) {
                     SafeSupplierLinkmanVO safeSupplierLinkmanVO = new SafeSupplierLinkmanVO();
                     BeanUtils.copyProperties(supplierLinkman, safeSupplierLinkmanVO);
+                    safeSupplierLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(supplierLinkman.getLinkmanBirth()));
                     safeSupplierLinkmanVOList.add(safeSupplierLinkmanVO);
                 }
                 safeSupplierVO.setSafeSupplierLinkmanVOList(safeSupplierLinkmanVOList);

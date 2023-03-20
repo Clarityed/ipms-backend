@@ -1,14 +1,13 @@
 package com.clarity.ipmsbackend.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.clarity.ipmsbackend.annotation.AuthCheck;
-import com.clarity.ipmsbackend.common.BaseResponse;
-import com.clarity.ipmsbackend.common.ErrorCode;
-import com.clarity.ipmsbackend.common.ResultUtils;
+import com.clarity.ipmsbackend.common.*;
 import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
-import com.clarity.ipmsbackend.model.dto.bom.AddBomRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.AddPurchaseBillRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.UpdatePurchaseBillRequest;
+import com.clarity.ipmsbackend.model.vo.purchasebill.SafePurchaseBillVO;
 import com.clarity.ipmsbackend.service.IpmsPurchaseBillService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -137,5 +136,22 @@ public class IpmsPurchaseBillController {
         }
         int result = ipmsPurchaseBillService.updatePurchaseBill(updatePurchaseBillRequest, request);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 采购单据查询（可作为选单源功能，采购单据列表查询功能，并且也支持模糊查询）
+     *
+     * @param purchaseBillQueryRequest
+     * @return
+     */
+    @GetMapping("/selectPurchaseBill")
+    @ApiOperation(value = "采购单据查询（可作为选单源功能，采购单据列表查询功能，并且也支持模糊查询）（采购员、采购主管）")
+    @AuthCheck(anyRole = {UserConstant.BUY_ROLE, UserConstant.BUY_ROLE_SUPER})
+    public BaseResponse<Page<SafePurchaseBillVO>> selectPurchaseBill(PurchaseBillQueryRequest purchaseBillQueryRequest) {
+        if (purchaseBillQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafePurchaseBillVO> safePurchaseBillSelectSingleSourceVOPage = ipmsPurchaseBillService.selectPurchaseBill(purchaseBillQueryRequest);
+        return ResultUtils.success(safePurchaseBillSelectSingleSourceVOPage);
     }
 }

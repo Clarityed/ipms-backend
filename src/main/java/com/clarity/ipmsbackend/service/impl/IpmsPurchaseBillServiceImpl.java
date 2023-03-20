@@ -1,9 +1,12 @@
 package com.clarity.ipmsbackend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.clarity.ipmsbackend.common.Constant;
 import com.clarity.ipmsbackend.common.ErrorCode;
+import com.clarity.ipmsbackend.common.PurchaseBillQueryRequest;
 import com.clarity.ipmsbackend.constant.PurchaseBillConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsPurchaseBillMapper;
@@ -12,13 +15,16 @@ import com.clarity.ipmsbackend.model.dto.purchasebill.UpdatePurchaseBillRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.AddProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdateProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
-import com.clarity.ipmsbackend.model.vo.SafeUserVO;
+import com.clarity.ipmsbackend.model.vo.*;
+import com.clarity.ipmsbackend.model.vo.purchasebill.SafePurchaseBillVO;
+import com.clarity.ipmsbackend.model.vo.purchasebill.productnum.SafePurchaseBillProductNumVO;
 import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.SplitUtil;
 import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import com.clarity.ipmsbackend.utils.ValidType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Clarity
@@ -61,6 +65,21 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
 
     @Resource
     private IpmsProductInventoryService ipmsProductInventoryService;
+
+    @Resource
+    private IpmsSupplierLinkmanService ipmsSupplierLinkmanService;
+
+    @Resource
+    private IpmsProductService ipmsProductService;
+
+    @Resource
+    private IpmsWarehouseService ipmsWarehouseService;
+
+    @Resource
+    private IpmsWarehousePositionService ipmsWarehousePositionService;
+
+    @Resource
+    private IpmsUnitService ipmsUnitService;
 
     @Override
     public String purchaseBillCodeAutoGenerate(String purchaseBillType) {
@@ -785,5 +804,248 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             }
         }
         return result;
+    }
+
+    @Override
+    public Page<SafePurchaseBillVO> selectPurchaseBill(PurchaseBillQueryRequest purchaseBillQueryRequest) {
+        // 1. 参数校验
+        String purchaseBillType = purchaseBillQueryRequest.getPurchaseBillType();
+        if (purchaseBillType == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不能为空");
+        }
+        if (purchaseBillType.equals(PurchaseBillConstant.PURCHASE_RETURN_ORDER)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "采购退货单不作为单源");
+        }
+        List<String> billTypeList = Arrays.asList(PurchaseBillConstant.PURCHASE_ORDER, PurchaseBillConstant.PURCHASE_RECEIPT_ORDER, PurchaseBillConstant.PURCHASE_RETURN_ORDER);
+        int validTypeResult = ValidType.valid(billTypeList, purchaseBillType);
+        if (validTypeResult == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不存在");
+        }
+        // 2. 进行分页查询，分情况查询，采购入库单和采购退货单
+        Page<IpmsPurchaseBill> page = new Page<>(purchaseBillQueryRequest.getCurrentPage(), purchaseBillQueryRequest.getPageSize());
+        QueryWrapper<IpmsPurchaseBill> ipmsPurchaseBillQueryWrapper = new QueryWrapper<>();
+        String fuzzyText = purchaseBillQueryRequest.getFuzzyText();
+        Long supplierId = purchaseBillQueryRequest.getSupplierId();
+        if (supplierId != null && supplierId > 0) {
+            IpmsSupplier supplier = ipmsSupplierService.getById(supplierId);
+            if (supplier == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "供应商不存在");
+            }
+            // 找到哪些还需要被引用的单源
+            QueryWrapper<IpmsPurchaseBill> purchaseBillQueryWrapper = new QueryWrapper<>();
+            purchaseBillQueryWrapper.eq("supplier_id", supplierId);
+            purchaseBillQueryWrapper.eq("purchase_bill_type", purchaseBillType);
+            // 找出属于该供应商的所有对应类型的采购单据
+            List<IpmsPurchaseBill> ipmsPurchaseBills = ipmsPurchaseBillMapper.selectList(purchaseBillQueryWrapper);
+            // 收集源单 id 集合
+            List<Long> sourcePurchaseBillIdList = new ArrayList<>();
+            if (ipmsPurchaseBills != null && ipmsPurchaseBills.size() > 0) {
+                for (IpmsPurchaseBill ipmsPurchaseBill : ipmsPurchaseBills) {
+                    Long purchaseBillId = ipmsPurchaseBill.getPurchaseBillId();
+                    if (purchaseBillId != null && purchaseBillId > 0) {
+                        sourcePurchaseBillIdList.add(purchaseBillId);
+                    }
+                }
+            }
+            // 存储当前供应商的可以作为源单的 id 集合
+            List<Long> currentCanUseSourcePurchaseBillIdList = new ArrayList<>();
+            if (sourcePurchaseBillIdList.size() > 0) {
+                QueryWrapper<IpmsPurchaseBillProductNum> purchaseBillProductNumQueryWrapper;
+                for (Long sourcePurchaseBillId : sourcePurchaseBillIdList) {
+                    purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                    purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", sourcePurchaseBillId);
+                    List<IpmsPurchaseBillProductNum> purchaseBillProductNums = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+                    if (purchaseBillProductNums != null && purchaseBillProductNums.size() > 0) {
+                        for (IpmsPurchaseBillProductNum purchaseBillProductNum : purchaseBillProductNums) {
+                            if (purchaseBillProductNum.getSurplusNeedWarehousingProductNum().doubleValue() != 0) {
+                                currentCanUseSourcePurchaseBillIdList.add(purchaseBillProductNum.getPurchaseBillId());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (currentCanUseSourcePurchaseBillIdList.size() > 0) {
+                if (StringUtils.isNotBlank(fuzzyText)) {
+                    ipmsPurchaseBillQueryWrapper.like("purchase_bill_code", fuzzyText)
+                            .and(billType -> billType.eq("purchase_bill_type", purchaseBillType))
+                            .and(supId -> supId.eq("supplier_id", supplierId))
+                            .and(purchaseBillId -> purchaseBillId.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList)).or()
+                            .like("purchase_bill_date", fuzzyText)
+                            .and(billType -> billType.eq("purchase_bill_type", purchaseBillType))
+                            .and(supId -> supId.eq("supplier_id", supplierId))
+                            .and(purchaseBillId -> purchaseBillId.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList)).or()
+                            .like("purchase_bill_settlement_date", fuzzyText)
+                            .and(billType -> billType.eq("purchase_bill_type", purchaseBillType))
+                            .and(supId -> supId.eq("supplier_id", supplierId))
+                            .and(purchaseBillId -> purchaseBillId.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList)).or()
+                            .like("purchase_bill_remark", fuzzyText)
+                            .and(billType -> billType.eq("purchase_bill_type", purchaseBillType))
+                            .and(supId -> supId.eq("supplier_id", supplierId))
+                            .and(purchaseBillId -> purchaseBillId.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList)).or()
+                            .like("purchase_bill_currency_type", fuzzyText)
+                            .and(billType -> billType.eq("purchase_bill_type", purchaseBillType))
+                            .and(supId -> supId.eq("supplier_id", supplierId))
+                            .and(purchaseBillId -> purchaseBillId.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList)).or()
+                            .like("purchase_bill_exchange_rate", fuzzyText)
+                            .and(billType -> billType.eq("purchase_bill_type", purchaseBillType))
+                            .and(supId -> supId.eq("supplier_id", supplierId))
+                            .and(purchaseBillId -> purchaseBillId.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList));
+                } else {
+                    ipmsPurchaseBillQueryWrapper.eq("purchase_bill_type", purchaseBillType);
+                    ipmsPurchaseBillQueryWrapper.eq("supplier_id", supplierId);
+                    ipmsPurchaseBillQueryWrapper.in("purchase_bill_id", currentCanUseSourcePurchaseBillIdList);
+                }
+            } else {
+                return new PageDTO<>();
+            }
+        } else {
+            if (StringUtils.isNotBlank(fuzzyText)) {
+                ipmsPurchaseBillQueryWrapper.like("purchase_bill_code", fuzzyText)
+                        .and(billType -> billType.eq("purchase_bill_type", purchaseBillType)).or()
+                        .like("purchase_bill_date", fuzzyText)
+                        .and(billType -> billType.eq("purchase_bill_type", purchaseBillType)).or()
+                        .like("purchase_bill_settlement_date", fuzzyText)
+                        .and(billType -> billType.eq("purchase_bill_type", purchaseBillType)).or()
+                        .like("purchase_bill_remark", fuzzyText)
+                        .and(billType -> billType.eq("purchase_bill_type", purchaseBillType)).or()
+                        .like("purchase_bill_currency_type", fuzzyText)
+                        .and(billType -> billType.eq("purchase_bill_type", purchaseBillType)).or()
+                        .like("purchase_bill_exchange_rate", fuzzyText)
+                        .and(billType -> billType.eq("purchase_bill_type", purchaseBillType));
+            } else {
+                ipmsPurchaseBillQueryWrapper.eq("purchase_bill_type", purchaseBillType);
+            }
+        }
+        Page<IpmsPurchaseBill> purchaseBillPage = ipmsPurchaseBillMapper.selectPage(page, ipmsPurchaseBillQueryWrapper);
+        List<SafePurchaseBillVO> safePurchaseBillVOList = purchaseBillPage.getRecords().stream().map(ipmsPurchaseBill -> {
+            SafePurchaseBillVO safePurchaseBillVO = new SafePurchaseBillVO();
+            BeanUtils.copyProperties(ipmsPurchaseBill, safePurchaseBillVO);
+            // 设置源单相关的数据
+            Long purchaseSourceBillId = ipmsPurchaseBill.getPurchaseSourceBillId();
+            if (purchaseSourceBillId != null && purchaseSourceBillId > 0) {
+                IpmsPurchaseBill purchaseBill = ipmsPurchaseBillMapper.selectById(purchaseSourceBillId);
+                if (purchaseBill == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到源单，系统业务错误");
+                }
+                safePurchaseBillVO.setPurchaseSourceBillCode(purchaseBill.getPurchaseBillCode());
+                safePurchaseBillVO.setPurchaseSourceBillType(purchaseBill.getPurchaseBillType());
+            }
+            // 查询供应商信息，并设置到返回封装类中
+            Long supId = ipmsPurchaseBill.getSupplierId();
+            if (supId != null && supId > 0) {
+                IpmsSupplier sup = ipmsSupplierService.getById(supId);
+                if (sup == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到供应商信息，系统业务错误");
+                }
+                SafeSupplierVO safeSupplierVO = new SafeSupplierVO();
+                QueryWrapper<IpmsSupplierLinkman> supplierLinkmanQueryWrapper = new QueryWrapper<>();
+                supplierLinkmanQueryWrapper.eq("supplier_id", supId);
+                List<IpmsSupplierLinkman> supplierLinkmanList = ipmsSupplierLinkmanService.list(supplierLinkmanQueryWrapper);
+                List<SafeSupplierLinkmanVO> safeSupplierLinkmanVOList = new ArrayList<>();
+                if (supplierLinkmanList != null && supplierLinkmanList.size() > 0) {
+                    for (IpmsSupplierLinkman supplierLinkman : supplierLinkmanList) {
+                        SafeSupplierLinkmanVO safeSupplierLinkmanVO = new SafeSupplierLinkmanVO();
+                        BeanUtils.copyProperties(supplierLinkman, safeSupplierLinkmanVO);
+                        safeSupplierLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(supplierLinkman.getLinkmanBirth()));
+                        safeSupplierLinkmanVOList.add(safeSupplierLinkmanVO);
+                    }
+                }
+                BeanUtils.copyProperties(sup, safeSupplierVO);
+                safeSupplierVO.setSafeSupplierLinkmanVOList(safeSupplierLinkmanVOList);
+                safePurchaseBillVO.setSafeSupplierVO(safeSupplierVO);
+            }
+            // 查询职员信息，并设置到返回封装类中
+            Long employeeId = ipmsPurchaseBill.getEmployeeId();
+            if (employeeId != null && employeeId > 0) {
+                IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+                if (employee == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到职员信息，系统业务错误");
+                }
+                safePurchaseBillVO.setEmployeeId(employeeId);
+                safePurchaseBillVO.setEmployeeName(employee.getEmployeeName());
+            }
+            // 查询部门信息，并设置到返回封装类中
+            Long departmentId = ipmsPurchaseBill.getDepartmentId();
+            if (departmentId != null && departmentId > 0) {
+                IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+                if (department == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到部门信息，系统业务错误");
+                }
+                safePurchaseBillVO.setDepartmentId(departmentId);
+                safePurchaseBillVO.setDepartmentName(department.getDepartmentName());
+            }
+            // 查询采购单据的商品信息，并设置到返回封装类中
+            Long purchaseBillId = ipmsPurchaseBill.getPurchaseBillId();
+            if (purchaseBillId != null && purchaseBillId > 0) {
+                QueryWrapper<IpmsPurchaseBillProductNum> purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+                purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseBillId);
+                List<IpmsPurchaseBillProductNum> purchaseBillProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+                List<SafePurchaseBillProductNumVO> safePurchaseBillProductVOList = new ArrayList<>();
+                if (purchaseBillProductList != null && purchaseBillProductList.size() > 0) {
+                    for (IpmsPurchaseBillProductNum purchaseBillProduct : purchaseBillProductList) {
+                        SafePurchaseBillProductNumVO safePurchaseBillProductVO = new SafePurchaseBillProductNumVO();
+                        BeanUtils.copyProperties(purchaseBillProduct, safePurchaseBillProductVO);
+                        // 在采购商品中查询商品等信息，并设置到返回封装类中
+                        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+                        Long productId = purchaseBillProduct.getProductId();
+                        if (productId != null && productId > 0) {
+                            IpmsProduct product = ipmsProductService.getById(productId);
+                            if (product == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品，系统业务逻辑错误");
+                            }
+                            Long unitId = product.getUnitId();
+                            if (unitId == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位 id 为空，系统业务逻辑错误");
+                            }
+                            IpmsUnit productUnit = ipmsUnitService.getById(unitId);
+                            if (productUnit == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位为空，系统业务逻辑错误");
+                            }
+                            SafeProductVO safeProductVO = new SafeProductVO();
+                            BeanUtils.copyProperties(product, safeProductVO);
+                            safeProductVO.setUnitName(productUnit.getUnitName());
+                            safePurchaseBillProductVO.setSafeProductVO(safeProductVO);
+                            productInventoryQueryWrapper.eq("product_id", productId);
+                        }
+                        Long warehouseId = purchaseBillProduct.getWarehouseId();
+                        if (warehouseId != null && warehouseId > 0) {
+                            IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+                            if (warehouse == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到仓库，系统业务逻辑错误");
+                            }
+                            safePurchaseBillProductVO.setWarehouseId(warehouseId);
+                            safePurchaseBillProductVO.setWarehouseName(warehouse.getWarehouseName());
+                            productInventoryQueryWrapper.eq("warehouse_id", warehouseId);
+                        }
+                        Long warehousePositionId = purchaseBillProduct.getWarehousePositionId();
+                        if (warehousePositionId != null && warehousePositionId > 0) {
+                            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                            if (warehousePosition != null) {
+                                safePurchaseBillProductVO.setWarehousePositionId(warehousePositionId);
+                                safePurchaseBillProductVO.setWarehousePositionName(warehousePosition.getWarehousePositionName());
+                                productInventoryQueryWrapper.eq("warehouse_position_id", warehousePositionId);
+                            }
+                        }
+                        // 查询库存
+                        IpmsProductInventory productInventory = ipmsProductInventoryService.getOne(productInventoryQueryWrapper);
+                        if (productInventory != null) {
+                            safePurchaseBillProductVO.setAvailableInventory(productInventory.getProductInventorySurplusNum());
+                        }
+                        safePurchaseBillProductVOList.add(safePurchaseBillProductVO);
+                    }
+                }
+                safePurchaseBillVO.setSafePurchaseBillProductNumVOList(safePurchaseBillProductVOList);
+            }
+            // 单据时间格式化
+            safePurchaseBillVO.setCreateTime(TimeFormatUtil.dateFormatting(ipmsPurchaseBill.getCreateTime()));
+            safePurchaseBillVO.setUpdateTime(TimeFormatUtil.dateFormatting(ipmsPurchaseBill.getUpdateTime()));
+            safePurchaseBillVO.setCheckTime(TimeFormatUtil.dateFormatting(ipmsPurchaseBill.getCheckTime()));
+            return safePurchaseBillVO;
+        }).collect(Collectors.toList());
+        // 关键步骤
+        Page<SafePurchaseBillVO> safePurchaseBillVOPage = new PageDTO<>(purchaseBillPage.getCurrent(), purchaseBillPage.getSize(), purchaseBillPage.getTotal());
+        safePurchaseBillVOPage.setRecords(safePurchaseBillVOList);
+        return safePurchaseBillVOPage;
     }
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
 import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBillProductNum;
 
+import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 
 /**
@@ -40,4 +41,14 @@ public interface IpmsProductInventoryService extends IService<IpmsProductInvento
      * @return 1 - 成功， 0 - 失败
      */
     int deleteProductInventoryRecord(long id);
+
+    /**
+     * 根据商品 id 和仓库 id 获取对应商品可用库存量（仓位 id 可能存在，存在的话必须传递）
+     *
+     * @param productId 商品 id
+     * @param warehouseId 仓库 id
+     * @param warehousePositionId 仓位 id
+     * @return 对应商品的可用库存
+     */
+    BigDecimal getAvailableInventoryOfProduct(long productId, long warehouseId, Long warehousePositionId, HttpServletRequest request);
 }

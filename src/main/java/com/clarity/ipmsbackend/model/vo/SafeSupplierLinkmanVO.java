@@ -45,7 +45,7 @@ public class SafeSupplierLinkmanVO {
      * 联系人生日
      */
     @ApiModelProperty("联系人生日")
-    private Date linkmanBirth;
+    private String linkmanBirth;
 
     /**
      * 联系人 QQ

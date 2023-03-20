@@ -6,14 +6,13 @@ import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.constant.WarehouseConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsProductInventoryMapper;
-import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
-import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBillProductNum;
-import com.clarity.ipmsbackend.model.entity.IpmsWarehouse;
-import com.clarity.ipmsbackend.service.IpmsProductInventoryService;
-import com.clarity.ipmsbackend.service.IpmsWarehouseService;
+import com.clarity.ipmsbackend.model.entity.*;
+import com.clarity.ipmsbackend.model.vo.SafeUserVO;
+import com.clarity.ipmsbackend.service.*;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
@@ -32,6 +31,15 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
 
     @Resource
     private IpmsWarehouseService ipmsWarehouseService;
+
+    @Resource
+    private IpmsProductService ipmsProductService;
+
+    @Resource
+    private IpmsWarehousePositionService ipmsWarehousePositionService;
+
+    @Resource
+    private IpmsUserService ipmsUserService;
 
     @Override
     public BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate) {
@@ -160,6 +168,51 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除商品库存记录失败");
         }
         return result;
+    }
+
+    @Override
+    public BigDecimal getAvailableInventoryOfProduct(long productId, long warehouseId, Long warehousePositionId, HttpServletRequest request) {
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        if (productId < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品 id 不合法");
+        }
+        if (warehouseId < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓库 id 不合法");
+        }
+        IpmsProduct product = ipmsProductService.getById(productId);
+        if (product == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品不存在");
+        }
+        IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+        if (warehouse == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "仓库不存在");
+        }
+        if (warehouse.getIsWarehousePositionManagement() == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (warehousePositionId == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓库已开启仓位管理，必须要有仓位 id");
+            }
+            if (warehousePositionId < 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓库 id 不合法");
+            }
+            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+            if (warehousePosition == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "仓位不存在");
+            }
+        }
+        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+        productInventoryQueryWrapper.eq("product_id", productId);
+        productInventoryQueryWrapper.eq("warehouse_id", warehouseId);
+        if (warehousePositionId != null && warehousePositionId > 0) {
+            productInventoryQueryWrapper.eq("warehouse_position_id", warehousePositionId);
+        }
+        IpmsProductInventory productInventory = ipmsProductInventoryMapper.selectOne(productInventoryQueryWrapper);
+        if (productInventory == null) {
+            return BigDecimal.ZERO;
+        }
+        return productInventory.getProductInventorySurplusNum();
     }
 }
 
