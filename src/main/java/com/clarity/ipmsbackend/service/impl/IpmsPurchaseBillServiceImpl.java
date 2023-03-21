@@ -423,6 +423,8 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         IpmsPurchaseBill unCheckingPurchaseBill = new IpmsPurchaseBill();
         unCheckingPurchaseBill.setPurchaseBillId(purchaseBill.getPurchaseBillId());
         unCheckingPurchaseBill.setCheckState(Constant.UNCHECKED);
+        unCheckingPurchaseBill.setChecker(null);
+        unCheckingPurchaseBill.setCreateTime(null);
         // 如果采购订单已经作为其他单据的源单，那么无法反审核，关闭的采购订单更是无法反审核，因为它肯定拥有源单
         // 采购入库单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。
         // 采购退货单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。（没有这种情况，采购退库单不作为其他单源）

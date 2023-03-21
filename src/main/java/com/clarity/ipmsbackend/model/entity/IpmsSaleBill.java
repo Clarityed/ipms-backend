@@ -8,42 +8,42 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 采购单据
- * @TableName ipms_purchase_bill
+ * 销售单据
+ * @TableName ipms_sale_bill
  */
-@TableName(value ="ipms_purchase_bill")
+@TableName(value ="ipms_sale_bill")
 @Data
-public class IpmsPurchaseBill implements Serializable {
+public class IpmsSaleBill implements Serializable {
     /**
-     * 采购单据 id
+     * 销售单据 id
      */
     @TableId(type = IdType.AUTO)
-    private Long purchaseBillId;
+    private Long saleBillId;
 
     /**
-     * 采购源单 id
+     * 销售源单据 id
      */
-    private Long purchaseSourceBillId;
+    private Long saleSourceBillId;
 
     /**
-     * 采购单据编号
+     * 销售单据编号
      */
-    private String purchaseBillCode;
+    private String saleBillCode;
 
     /**
-     * 采购单据日期
+     * 销售单据日期
      */
-    private String purchaseBillDate;
+    private String saleBillDate;
 
     /**
-     * 供应商 id（应付款余额、供应商发货地址）
+     * 客户 id（应收款余额、客户收货地址）
      */
-    private Long supplierId;
+    private Long customerId;
 
     /**
-     * 采购结算日期
+     * 销售结算日期
      */
-    private String purchaseBillSettlementDate;
+    private String saleBillSettlementDate;
 
     /**
      * 职员 id（业务员）
@@ -56,34 +56,34 @@ public class IpmsPurchaseBill implements Serializable {
     private Long departmentId;
 
     /**
-     * 采购单据备注
+     * 销售单据备注
      */
-    private String purchaseBillRemark;
+    private String saleBillRemark;
 
     /**
-     * 采购币别（默认人民币）
+     * 销售币别（默认人民币）
      */
-    private String purchaseBillCurrencyType;
+    private String saleBillCurrencyType;
 
     /**
-     * 采购汇率（默认 1）
+     * 销售汇率（默认 1）
      */
-    private BigDecimal purchaseBillExchangeRate;
+    private BigDecimal saleBillExchangeRate;
 
     /**
-     * 采购成交金额
+     * 销售成交金额
      */
-    private BigDecimal purchaseBillTransactionAmount;
+    private BigDecimal saleBillTransactionAmount;
 
     /**
-     * 采购退货原因
+     * 销售退货原因
      */
-    private String purchaseBillReturnReason;
+    private String saleBillReturnReason;
 
     /**
-     * 采购单据类型（采购订单、采购入库单、采购退货单）
+     * 销售单据类型（销售订单、销售出库单、销售退货单）
      */
-    private String purchaseBillType;
+    private String saleBillType;
 
     /**
      * 创建者
@@ -107,17 +107,17 @@ public class IpmsPurchaseBill implements Serializable {
     private Integer checkState;
 
     /**
-     * 执行状态（默认为 0，0 - 未执行，1 - 部分执行，2 - 完全执行）
+     * 执行状态（下推到销售出库单，并且销售出库单已经保存，默认为 0，0 - 未执行，1 - 部分执行，2 - 完全执行）
      */
     private Integer executionState;
 
     /**
-     * 入库状态（默认为 0，0 - 未入库，1 - 部分入库，2 - 完全入库）
+     * 出库状态（默认为 0，0 - 未出库，1 - 部分出库，2 - 完全出库）
      */
-    private Integer warehousingState;
+    private Integer deliveryState;
 
     /**
-     * 关闭状态（默认为 0，0 - 未关闭，1 - 已关闭）
+     * 关闭状态（默认为 0，0 - 未关闭，1 - 已关闭）（销售出库单保存时关闭）
      */
     private Integer offState;
 

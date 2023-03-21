@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsSaleBillMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsSaleBill">
+            <id property="saleBillId" column="sale_bill_id" jdbcType="BIGINT"/>
+            <result property="saleSourceBillId" column="sale_source_bill_id" jdbcType="BIGINT"/>
+            <result property="saleBillCode" column="sale_bill_code" jdbcType="VARCHAR"/>
+            <result property="saleBillDate" column="sale_bill_date" jdbcType="VARCHAR"/>
+            <result property="customerId" column="customer_id" jdbcType="BIGINT"/>
+            <result property="saleBillSettlementDate" column="sale_bill_settlement_date" jdbcType="VARCHAR"/>
+            <result property="employeeId" column="employee_id" jdbcType="BIGINT"/>
+            <result property="departmentId" column="department_id" jdbcType="BIGINT"/>
+            <result property="saleBillRemark" column="sale_bill_remark" jdbcType="VARCHAR"/>
+            <result property="saleBillCurrencyType" column="sale_bill_currency_type" jdbcType="VARCHAR"/>
+            <result property="saleBillExchangeRate" column="sale_bill_exchange_rate" jdbcType="DECIMAL"/>
+            <result property="saleBillTransactionAmount" column="sale_bill_transaction_amount" jdbcType="DECIMAL"/>
+            <result property="saleBillReturnReason" column="sale_bill_return_reason" jdbcType="VARCHAR"/>
+            <result property="saleBillType" column="sale_bill_type" jdbcType="VARCHAR"/>
+            <result property="founder" column="founder" jdbcType="VARCHAR"/>
+            <result property="modifier" column="modifier" jdbcType="VARCHAR"/>
+            <result property="checker" column="checker" jdbcType="VARCHAR"/>
+            <result property="checkState" column="check_state" jdbcType="TINYINT"/>
+            <result property="executionState" column="execution_state" jdbcType="TINYINT"/>
+            <result property="deliveryState" column="delivery_state" jdbcType="TINYINT"/>
+            <result property="offState" column="off_state" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="checkTime" column="check_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        sale_bill_id,sale_source_bill_id,sale_bill_code,
+        sale_bill_date,customer_id,sale_bill_settlement_date,
+        employee_id,department_id,sale_bill_remark,
+        sale_bill_currency_type,sale_bill_exchange_rate,sale_bill_transaction_amount,
+        sale_bill_return_reason,sale_bill_type,founder,
+        modifier,checker,check_state,
+        execution_state,delivery_state,off_state,
+        create_time,update_time,check_time,
+        is_delete
+    </sql>
+</mapper>
