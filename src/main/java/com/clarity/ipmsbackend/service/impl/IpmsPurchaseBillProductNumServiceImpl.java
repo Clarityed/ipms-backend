@@ -7,8 +7,8 @@ import com.clarity.ipmsbackend.constant.PurchaseBillConstant;
 import com.clarity.ipmsbackend.constant.WarehouseConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsPurchaseBillProductNumMapper;
-import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.AddProductNumRequest;
-import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdateProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.AddPurchaseProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdatePurchaseProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.service.IpmsProductService;
 import com.clarity.ipmsbackend.service.IpmsPurchaseBillProductNumService;
@@ -43,9 +43,9 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
     private IpmsWarehousePositionService ipmsWarehousePositionService;
 
     @Override
-    public long addPurchaseBillProductAndNum(AddProductNumRequest addProductNumRequest, IpmsPurchaseBill purchaseBill) {
+    public long addPurchaseBillProductAndNum(AddPurchaseProductNumRequest addPurchaseProductNumRequest, IpmsPurchaseBill purchaseBill) {
         // 1. 商品 id，不能为空，必须存在
-        Long productId = addProductNumRequest.getProductId();
+        Long productId = addPurchaseProductNumRequest.getProductId();
         if (productId == null || productId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品 id 为空或者不合法");
         }
@@ -54,7 +54,7 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品不存在");
         }
         // 2. 仓库 id，不能为空，必须存在
-        Long warehouseId = addProductNumRequest.getWarehouseId();
+        Long warehouseId = addPurchaseProductNumRequest.getWarehouseId();
         if (warehouseId == null || warehouseId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓库 id 为空或者不合法");
         }
@@ -69,7 +69,7 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "开启仓位字段出现问题");
         }
         if (isWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
-            Long warehousePositionId = addProductNumRequest.getWarehousePositionId();
+            Long warehousePositionId = addPurchaseProductNumRequest.getWarehousePositionId();
             if (warehousePositionId == null || warehousePositionId <= 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓位 id 为空或者不合法");
             }
@@ -79,13 +79,13 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
             }
         }
         // 4. 商品数量，不能为空，且必须大于 0
-        BigDecimal productNum = addProductNumRequest.getProductNum();
+        BigDecimal productNum = addPurchaseProductNumRequest.getProductNum();
         if (productNum == null || productNum.doubleValue() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品数量为空或者小于等于 0");
         }
         // 5. 商品单价也是，价格合计也是
-        BigDecimal unitPrice = addProductNumRequest.getUnitPrice();
-        BigDecimal totalPrice = addProductNumRequest.getTotalPrice();
+        BigDecimal unitPrice = addPurchaseProductNumRequest.getUnitPrice();
+        BigDecimal totalPrice = addPurchaseProductNumRequest.getTotalPrice();
         if (unitPrice == null || unitPrice.doubleValue() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品单价为空或者小于等于 0");
         }
@@ -94,7 +94,7 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
         }
         // 6. 增加数据，并且设置其他固定字段。
         IpmsPurchaseBillProductNum purchaseBillProductNum = new IpmsPurchaseBillProductNum();
-        BeanUtils.copyProperties(addProductNumRequest, purchaseBillProductNum);
+        BeanUtils.copyProperties(addPurchaseProductNumRequest, purchaseBillProductNum);
         purchaseBillProductNum.setPurchaseBillId(purchaseBill.getPurchaseBillId());
         purchaseBillProductNum.setCreateTime(new Date());
         purchaseBillProductNum.setUpdateTime(new Date());
@@ -156,8 +156,8 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
     }
 
     @Override
-    public int updatePurchaseBillProductAndNum(UpdateProductNumRequest updateProductNumRequest, IpmsPurchaseBill purchaseBill) {
-        Long purchaseBillProductId = updateProductNumRequest.getPurchaseBillProductId();
+    public int updatePurchaseBillProductAndNum(UpdatePurchaseProductNumRequest updatePurchaseProductNumRequest, IpmsPurchaseBill purchaseBill) {
+        Long purchaseBillProductId = updatePurchaseProductNumRequest.getPurchaseBillProductId();
         if (purchaseBillProductId == null || purchaseBillProductId < 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据商品库存 id 为空或者不合法");
         }
@@ -166,7 +166,7 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
         if (purchaseBillProduct == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "采购单据商品不存在");
         }
-        Long productId = updateProductNumRequest.getProductId();
+        Long productId = updatePurchaseProductNumRequest.getProductId();
         if (productId == null || productId < 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "采购单据商品 id 为空或者不合法");
         }
@@ -176,8 +176,8 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品不存在");
         }
         // 仓库是否为空
-        Long warehouseId = updateProductNumRequest.getWarehouseId();
-        Long warehousePositionId = updateProductNumRequest.getWarehousePositionId();
+        Long warehouseId = updatePurchaseProductNumRequest.getWarehouseId();
+        Long warehousePositionId = updatePurchaseProductNumRequest.getWarehousePositionId();
         if (warehouseId != null) {
             IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
             // 仓位为空抛出异常
@@ -198,13 +198,13 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
         }
         // 商品数量，单价，价格验证
         // 商品数量，不能为空，且必须大于 0
-        BigDecimal productNum = updateProductNumRequest.getProductNum();
+        BigDecimal productNum = updatePurchaseProductNumRequest.getProductNum();
         if (productNum == null || productNum.doubleValue() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品数量为空或者小于等于 0");
         }
         // 商品单价也是，价格合计也是
-        BigDecimal unitPrice = updateProductNumRequest.getUnitPrice();
-        BigDecimal totalPrice = updateProductNumRequest.getTotalPrice();
+        BigDecimal unitPrice = updatePurchaseProductNumRequest.getUnitPrice();
+        BigDecimal totalPrice = updatePurchaseProductNumRequest.getTotalPrice();
         if (unitPrice == null || unitPrice.doubleValue() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品单价为空或者小于等于 0");
         }
@@ -213,7 +213,7 @@ public class IpmsPurchaseBillProductNumServiceImpl extends ServiceImpl<IpmsPurch
         }
         // 更新对象
         IpmsPurchaseBillProductNum purchaseBillProductNum = new IpmsPurchaseBillProductNum();
-        BeanUtils.copyProperties(updateProductNumRequest, purchaseBillProductNum);
+        BeanUtils.copyProperties(updatePurchaseProductNumRequest, purchaseBillProductNum);
         purchaseBillProductNum.setUpdateTime(new Date());
         String purchaseBillType = purchaseBill.getPurchaseBillType();
         // 对于采购入库单来说源单是采购订单，对于采购退货单源单是采购入库单

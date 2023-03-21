@@ -1,4 +1,4 @@
-package com.clarity.ipmsbackend.model.dto.purchasebill.productnum;
+package com.clarity.ipmsbackend.model.dto.salebill.productnum;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -8,15 +8,15 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * 增加采购单据商品及数量请求封装类
+ * 增加销售单据商品及数量请求封装类
  *
  * @author: clarity
  * @date: 2023年03月13日 18:14
  */
 
-@ApiModel("增加采购单据商品及数量请求封装类")
+@ApiModel("增加销售单据商品及数量请求封装类")
 @Data
-public class AddProductNumRequest implements Serializable {
+public class AddSaleProductNumRequest implements Serializable {
 
     /**
      * 商品 id

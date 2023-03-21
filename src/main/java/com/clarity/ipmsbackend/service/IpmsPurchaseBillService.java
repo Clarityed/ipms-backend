@@ -21,7 +21,7 @@ public interface IpmsPurchaseBillService extends IService<IpmsPurchaseBill> {
      * 采购单据编号自动生成
      *
      * @param purchaseBillType 采购单据类型
-     * @return 对于单据的下一个编号
+     * @return 对应单据的下一个编号
      */
     String purchaseBillCodeAutoGenerate(String purchaseBillType);
 

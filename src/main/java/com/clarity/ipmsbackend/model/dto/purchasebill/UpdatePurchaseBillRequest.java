@@ -1,6 +1,6 @@
 package com.clarity.ipmsbackend.model.dto.purchasebill;
 
-import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdateProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdatePurchaseProductNumRequest;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -102,7 +102,7 @@ public class UpdatePurchaseBillRequest implements Serializable {
      * 修改采购单据的商品及商品数量
      */
     @ApiModelProperty("修改采购单据的商品及商品数量必传")
-    private List<UpdateProductNumRequest> updateProductNumRequestList;
+    private List<UpdatePurchaseProductNumRequest> updatePurchaseProductNumRequestList;
 
     private static final long serialVersionUID = 1L;
 }

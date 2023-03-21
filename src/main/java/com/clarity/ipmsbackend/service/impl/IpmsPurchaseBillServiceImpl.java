@@ -12,8 +12,8 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsPurchaseBillMapper;
 import com.clarity.ipmsbackend.model.dto.purchasebill.AddPurchaseBillRequest;
 import com.clarity.ipmsbackend.model.dto.purchasebill.UpdatePurchaseBillRequest;
-import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.AddProductNumRequest;
-import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdateProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.AddPurchaseProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.purchasebill.productnum.UpdatePurchaseProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.*;
 import com.clarity.ipmsbackend.model.vo.purchasebill.SafePurchaseBillVO;
@@ -215,21 +215,21 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不存在");
         }
         // 8. 采购单据的商品及商品数量至少存在一个
-        List<AddProductNumRequest> addProductNumRequestList = addPurchaseBillRequest.getAddProductNumRequestList();
-        if (addProductNumRequestList == null || addProductNumRequestList.size() <= 0) {
+        List<AddPurchaseProductNumRequest> addPurchaseProductNumRequestList = addPurchaseBillRequest.getAddPurchaseProductNumRequestList();
+        if (addPurchaseProductNumRequestList == null || addPurchaseProductNumRequestList.size() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "采购的商品为空，至少要存在一个采购商品");
         }
         // 并且验证单据成交金额是否一致
         double validPurchaseBillTransactionAmount = 0;
-        for (AddProductNumRequest addProductNumRequest : addProductNumRequestList) {
+        for (AddPurchaseProductNumRequest addPurchaseProductNumRequest : addPurchaseProductNumRequestList) {
             // 商品数量，不能为空，且必须大于 0
-            BigDecimal productNum = addProductNumRequest.getProductNum();
+            BigDecimal productNum = addPurchaseProductNumRequest.getProductNum();
             if (productNum == null || productNum.doubleValue() <= 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品数量为空或者小于等于 0");
             }
             // 商品单价也是，价格合计也是
-            BigDecimal unitPrice = addProductNumRequest.getUnitPrice();
-            BigDecimal totalPrice = addProductNumRequest.getTotalPrice();
+            BigDecimal unitPrice = addPurchaseProductNumRequest.getUnitPrice();
+            BigDecimal totalPrice = addPurchaseProductNumRequest.getTotalPrice();
             if (unitPrice == null || unitPrice.doubleValue() <= 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品单价为空或者小于等于 0");
             }
@@ -268,8 +268,8 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
         // 10. 最后调用增加采购单据商品及数量
-        for (AddProductNumRequest addProductNumRequest : addProductNumRequestList) {
-            long addPurchaseBillProductAndNumResult = ipmsPurchaseBillProductNumService.addPurchaseBillProductAndNum(addProductNumRequest, purchaseBill);
+        for (AddPurchaseProductNumRequest addPurchaseProductNumRequest : addPurchaseProductNumRequestList) {
+            long addPurchaseBillProductAndNumResult = ipmsPurchaseBillProductNumService.addPurchaseBillProductAndNum(addPurchaseProductNumRequest, purchaseBill);
             if (addPurchaseBillProductAndNumResult < 0) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "采购单据商品及数量插入失败");
             }
@@ -689,8 +689,8 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             }
         }
         // 8. 采购单据的商品及商品数量至少存在一个
-        List<UpdateProductNumRequest> updateProductNumRequestList = updatePurchaseBillRequest.getUpdateProductNumRequestList();
-        if (updateProductNumRequestList == null || updateProductNumRequestList.size() <= 0) {
+        List<UpdatePurchaseProductNumRequest> updatePurchaseProductNumRequestList = updatePurchaseBillRequest.getUpdatePurchaseProductNumRequestList();
+        if (updatePurchaseProductNumRequestList == null || updatePurchaseProductNumRequestList.size() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "采购的商品为空，至少要存在一个采购商品");
         }
         BigDecimal purchaseBillTransactionAmount = updatePurchaseBillRequest.getPurchaseBillTransactionAmount();
@@ -699,15 +699,15 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         }
         // 并且验证单据成交金额是否一致
         double validPurchaseBillTransactionAmount = 0;
-        for (UpdateProductNumRequest updateProductNumRequest : updateProductNumRequestList) {
+        for (UpdatePurchaseProductNumRequest updatePurchaseProductNumRequest : updatePurchaseProductNumRequestList) {
             // 商品数量，不能为空，且必须大于 0
-            BigDecimal productNum = updateProductNumRequest.getProductNum();
+            BigDecimal productNum = updatePurchaseProductNumRequest.getProductNum();
             if (productNum == null || productNum.doubleValue() <= 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品数量为空或者小于等于 0");
             }
             // 商品单价也是，价格合计也是
-            BigDecimal unitPrice = updateProductNumRequest.getUnitPrice();
-            BigDecimal totalPrice = updateProductNumRequest.getTotalPrice();
+            BigDecimal unitPrice = updatePurchaseProductNumRequest.getUnitPrice();
+            BigDecimal totalPrice = updatePurchaseProductNumRequest.getTotalPrice();
             if (unitPrice == null || unitPrice.doubleValue() <= 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品单价为空或者小于等于 0");
             }
@@ -734,17 +734,17 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "修改采购单据失败");
         }
         List<Long> updateAndInsertPurchaseBillProductList = new ArrayList<>();
-        for (UpdateProductNumRequest updateProductNumRequest : updateProductNumRequestList) {
-            Long purchaseBillProductId = updateProductNumRequest.getPurchaseBillProductId();
+        for (UpdatePurchaseProductNumRequest updatePurchaseProductNumRequest : updatePurchaseProductNumRequestList) {
+            Long purchaseBillProductId = updatePurchaseProductNumRequest.getPurchaseBillProductId();
             // 如果存在 purchaseBillProductId，那么肯定是要更新的数据，进行更新，并且存入列表中
             if (purchaseBillProductId != null && purchaseBillProductId > 0) {
                 updateAndInsertPurchaseBillProductList.add(purchaseBillProductId);
-                ipmsPurchaseBillProductNumService.updatePurchaseBillProductAndNum(updateProductNumRequest, oldPurchaseBill);
+                ipmsPurchaseBillProductNumService.updatePurchaseBillProductAndNum(updatePurchaseProductNumRequest, oldPurchaseBill);
             } else {
                 // 否则，就是插入新的数据
-                AddProductNumRequest addProductNumRequest = new AddProductNumRequest();
-                BeanUtils.copyProperties(updateProductNumRequest, addProductNumRequest);
-                long insertPurchaseBillProductId = ipmsPurchaseBillProductNumService.addPurchaseBillProductAndNum(addProductNumRequest, oldPurchaseBill);
+                AddPurchaseProductNumRequest addPurchaseProductNumRequest = new AddPurchaseProductNumRequest();
+                BeanUtils.copyProperties(updatePurchaseProductNumRequest, addPurchaseProductNumRequest);
+                long insertPurchaseBillProductId = ipmsPurchaseBillProductNumService.addPurchaseBillProductAndNum(addPurchaseProductNumRequest, oldPurchaseBill);
                 if (insertPurchaseBillProductId < 0) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "增加采购单据商品失败");
                 }

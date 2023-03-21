@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 
 @ApiModel("修改采购单据商品及数量请求封装类")
 @Data
-public class UpdateProductNumRequest implements Serializable {
+public class UpdatePurchaseProductNumRequest implements Serializable {
 
     /**
      * 采购单据商品 id
