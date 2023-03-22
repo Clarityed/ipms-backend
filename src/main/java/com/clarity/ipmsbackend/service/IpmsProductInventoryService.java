@@ -3,6 +3,7 @@ package com.clarity.ipmsbackend.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
 import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBillProductNum;
+import com.clarity.ipmsbackend.model.entity.IpmsSaleBillProductNum;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
@@ -15,22 +16,40 @@ import java.math.BigDecimal;
 public interface IpmsProductInventoryService extends IService<IpmsProductInventory> {
 
     /**
-     * 增加商品库存
+     * 采购单据增加商品库存
      *
-     * @param purchaseBillProductNum 商品及商品数量
+     * @param purchaseBillProductNum 采购单据商品及商品数量
      * @param purchaseBillExchangeRate 金额汇率
      * @return 单据中的某一个本次商品总价
      */
     BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate);
 
     /**
-     * 减少商品库存
+     * 采购单据减少商品库存
      *
-     * @param purchaseBillProductNum 商品及商品数量
+     * @param purchaseBillProductNum 采购单据商品及商品数量
      * @param purchaseBillExchangeRate 金额汇率
      * @return 单据中的某一个本次商品总价
      */
     BigDecimal reduceProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate);
+
+    /**
+     * 销售单据增加商品库存
+     *
+     * @param saleBillProductNum 销售单据商品及商品数量
+     * @param saleBillExchangeRate 金额汇率
+     * @return 单据中的某一个本次商品总价
+     */
+    BigDecimal addProductInventory(IpmsSaleBillProductNum saleBillProductNum, BigDecimal saleBillExchangeRate);
+
+    /**
+     * 销售单据减少商品库存
+     *
+     * @param saleBillProductNum 销售单据商品及商品数量
+     * @param saleBillExchangeRate 金额汇率
+     * @return 单据中的某一个本次商品总价
+     */
+    BigDecimal reduceProductInventory(IpmsSaleBillProductNum saleBillProductNum, BigDecimal saleBillExchangeRate);
 
     /**
      * 提供一个方法对仓库的记录进行删除，但是只允许删除剩余库存数为 0 的库存记录，为负库存，代表使用超过了当前库存，应该采购

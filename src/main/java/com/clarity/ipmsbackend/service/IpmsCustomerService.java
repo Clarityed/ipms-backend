@@ -56,4 +56,22 @@ public interface IpmsCustomerService extends IService<IpmsCustomer> {
      * @return
      */
     Page<SafeCustomerVO> pagingFuzzyQuery(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
+
+    /**
+     * 实现客户金额的增加
+     *
+     * @param customerId
+     * @param enterpriseReceiveBalance
+     * @return
+     */
+    int addEnterpriseReceiveBalance(long customerId, double enterpriseReceiveBalance);
+
+    /**
+     * 实现客户金额的减少
+     *
+     * @param customerId
+     * @param enterpriseReceiveBalance
+     * @return
+     */
+    int reduceEnterpriseReceiveBalance(long customerId, double enterpriseReceiveBalance);
 }

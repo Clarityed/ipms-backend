@@ -14,6 +14,8 @@ import com.clarity.ipmsbackend.model.dto.customer.linkman.UpdateCustomerLinkmanR
 import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomerLinkman;
+import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
+import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerLinkmanVO;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
@@ -21,6 +23,7 @@ import com.clarity.ipmsbackend.service.IpmsCustomerLinkmanService;
 import com.clarity.ipmsbackend.service.IpmsCustomerService;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
+import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -205,6 +209,10 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
                 for (IpmsCustomerLinkman customerLinkman : customerLinkmanList) {
                     SafeCustomerLinkmanVO safeCustomerLinkmanVO = new SafeCustomerLinkmanVO();
                     BeanUtils.copyProperties(customerLinkman, safeCustomerLinkmanVO);
+                    Date linkmanBirth = customerLinkman.getLinkmanBirth();
+                    if (linkmanBirth != null) {
+                        safeCustomerLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(linkmanBirth));
+                    }
                     safeCustomerLinkmanVOList.add(safeCustomerLinkmanVO);
                 }
                 safeCustomerVO.setSafeCustomerLinkmanVOList(safeCustomerLinkmanVOList);
@@ -215,6 +223,38 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
         Page<SafeCustomerVO> safeCustomerVOPage = new PageDTO<>(customerPage.getCurrent(), customerPage.getSize(), customerPage.getTotal());
         safeCustomerVOPage.setRecords(safeCustomerVOList);
         return safeCustomerVOPage;
+    }
+
+    @Override
+    public int addEnterpriseReceiveBalance(long customerId, double enterpriseReceiveBalance) {
+        IpmsCustomer customer = ipmsCustomerMapper.selectById(customerId);
+        if (customer == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "顾客不存在");
+        }
+        BigDecimal oldEnterpriseReceiveBalance = customer.getEnterpriseReceiveBalance();
+        BigDecimal newEnterpriseReceiveBalance = oldEnterpriseReceiveBalance.add(new BigDecimal(String.valueOf(enterpriseReceiveBalance)));
+        customer.setEnterpriseReceiveBalance(newEnterpriseReceiveBalance);
+        int result = ipmsCustomerMapper.updateById(customer);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新企业应收顾客金额失败");
+        }
+        return result;
+    }
+
+    @Override
+    public int reduceEnterpriseReceiveBalance(long customerId, double enterpriseReceiveBalance) {
+        IpmsCustomer customer = ipmsCustomerMapper.selectById(customerId);
+        if (customer == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "客户不存在");
+        }
+        BigDecimal oldEnterpriseReceiveBalance = customer.getEnterpriseReceiveBalance();
+        BigDecimal newEnterpriseReceiveBalance = oldEnterpriseReceiveBalance.subtract(new BigDecimal(String.valueOf(enterpriseReceiveBalance)));
+        customer.setEnterpriseReceiveBalance(newEnterpriseReceiveBalance);
+        int result = ipmsCustomerMapper.updateById(customer);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新企业应收客户金额失败");
+        }
+        return result;
     }
 }
 

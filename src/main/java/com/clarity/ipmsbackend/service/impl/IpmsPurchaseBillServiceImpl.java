@@ -144,7 +144,12 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         }
         String nextPurchaseBillCode = null;
         try {
-            nextPurchaseBillCode = CodeAutoGenerator.generatorCode(purchaseBillCodePrefix, purchaseBillCodeInfix, purchaseBillCodeSuffix);
+            String todayDateFormat = TimeFormatUtil.dateFormat(new Date());
+            if (!purchaseBillCodeInfix.equals(todayDateFormat)) {
+                nextPurchaseBillCode = CodeAutoGenerator.generatorCode(purchaseBillCodePrefix, todayDateFormat, "0");
+            } else {
+                nextPurchaseBillCode = CodeAutoGenerator.generatorCode(purchaseBillCodePrefix, purchaseBillCodeInfix, purchaseBillCodeSuffix);
+            }
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }
@@ -514,9 +519,6 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "增加供应商金额失败");
             }
         }
-        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
-        unCheckingPurchaseBill.setChecker(loginUser.getUserName());
-        unCheckingPurchaseBill.setCheckTime(new Date());
         int result = ipmsPurchaseBillMapper.updateById(unCheckingPurchaseBill);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
@@ -815,9 +817,6 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         if (purchaseBillType == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不能为空");
         }
-        if (purchaseBillType.equals(PurchaseBillConstant.PURCHASE_RETURN_ORDER)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "采购退货单不作为单源");
-        }
         List<String> billTypeList = Arrays.asList(PurchaseBillConstant.PURCHASE_ORDER, PurchaseBillConstant.PURCHASE_RECEIPT_ORDER, PurchaseBillConstant.PURCHASE_RETURN_ORDER);
         int validTypeResult = ValidType.valid(billTypeList, purchaseBillType);
         if (validTypeResult == 0) {
@@ -949,7 +948,10 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                     for (IpmsSupplierLinkman supplierLinkman : supplierLinkmanList) {
                         SafeSupplierLinkmanVO safeSupplierLinkmanVO = new SafeSupplierLinkmanVO();
                         BeanUtils.copyProperties(supplierLinkman, safeSupplierLinkmanVO);
-                        safeSupplierLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(supplierLinkman.getLinkmanBirth()));
+                        Date linkmanBirth = supplierLinkman.getLinkmanBirth();
+                        if (linkmanBirth != null) {
+                            safeSupplierLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(linkmanBirth));
+                        }
                         safeSupplierLinkmanVOList.add(safeSupplierLinkmanVO);
                     }
                 }

@@ -39,10 +39,10 @@ public class UpdateSaleBillRequest implements Serializable {
     private String saleBillDate;
 
     /**
-     * 供应商 id（应付款余额、供应商发货地址）
+     * 客户 id（应付款余额、客户发货地址）
      */
-    @ApiModelProperty("供应商 id，可以传递，也可以不传递，传递的话必须与原来的一致")
-    private Long supplierId;
+    @ApiModelProperty("客户 id，可以传递，也可以不传递，传递的话必须与原来的一致")
+    private Long customerId;
 
     /**
      * 销售结算日期

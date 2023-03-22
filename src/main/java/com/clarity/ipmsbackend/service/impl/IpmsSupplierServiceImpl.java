@@ -206,7 +206,10 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
                 for (IpmsSupplierLinkman supplierLinkman : supplierLinkmanList) {
                     SafeSupplierLinkmanVO safeSupplierLinkmanVO = new SafeSupplierLinkmanVO();
                     BeanUtils.copyProperties(supplierLinkman, safeSupplierLinkmanVO);
-                    safeSupplierLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(supplierLinkman.getLinkmanBirth()));
+                    Date linkmanBirth = supplierLinkman.getLinkmanBirth();
+                    if (linkmanBirth != null) {
+                        safeSupplierLinkmanVO.setLinkmanBirth(TimeFormatUtil.dateFormatting2(linkmanBirth));
+                    }
                     safeSupplierLinkmanVOList.add(safeSupplierLinkmanVO);
                 }
                 safeSupplierVO.setSafeSupplierLinkmanVOList(safeSupplierLinkmanVOList);

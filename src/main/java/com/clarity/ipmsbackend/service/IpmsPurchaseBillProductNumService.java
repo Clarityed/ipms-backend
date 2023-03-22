@@ -26,6 +26,7 @@ public interface IpmsPurchaseBillProductNumService extends IService<IpmsPurchase
      * 修改采购单据商品
      *
      * @param updatePurchaseProductNumRequest 修改采购单据商品及数量请求封装对象
+     * @param purchaseBill 采购单据对象
      * @return 1 - 成功， 0 - 失败
      */
     int updatePurchaseBillProductAndNum(UpdatePurchaseProductNumRequest updatePurchaseProductNumRequest, IpmsPurchaseBill purchaseBill);

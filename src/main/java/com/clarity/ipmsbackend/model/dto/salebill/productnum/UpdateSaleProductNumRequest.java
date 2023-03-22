@@ -22,7 +22,7 @@ public class UpdateSaleProductNumRequest implements Serializable {
      * 销售单据商品 id
      */
     @ApiModelProperty("销售单据商品 id，作为更新单据的索引")
-    private Long purchaseBillProductId;
+    private Long saleBillProductId;
 
     /**
      * 商品 id
