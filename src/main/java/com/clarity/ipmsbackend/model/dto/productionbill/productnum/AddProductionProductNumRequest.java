@@ -4,6 +4,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
@@ -15,7 +16,7 @@ import java.math.BigDecimal;
 
 @ApiModel("增加生产单据商品及数量请求封装类")
 @Data
-public class AddProductionProductNumRequest {
+public class AddProductionProductNumRequest implements Serializable {
 
     /**
      * 商品 id
