@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsProductionBillProductNumMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsProductionBillProductNum">
+            <id property="productionBillProductId" column="production_bill_product_id" jdbcType="BIGINT"/>
+            <result property="productionBillId" column="production_bill_id" jdbcType="BIGINT"/>
+            <result property="productId" column="product_id" jdbcType="BIGINT"/>
+            <result property="warehouseId" column="warehouse_id" jdbcType="BIGINT"/>
+            <result property="warehousePositionId" column="warehouse_position_id" jdbcType="BIGINT"/>
+            <result property="productMaterialMole" column="product_material_mole" jdbcType="DECIMAL"/>
+            <result property="needExecutionProductNum" column="need_execution_product_num" jdbcType="DECIMAL"/>
+            <result property="surplusNeedExecutionProductNum" column="surplus_need_execution_product_num" jdbcType="DECIMAL"/>
+            <result property="productIssuanceMethod" column="product_issuance_method" jdbcType="VARCHAR"/>
+            <result property="productRemark" column="product_remark" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        production_bill_product_id,production_bill_id,product_id,
+        warehouse_id,warehouse_position_id,product_material_mole,
+        need_execution_product_num,surplus_need_execution_product_num,product_issuance_method,
+        product_remark,create_time,update_time,
+        is_delete
+    </sql>
+</mapper>

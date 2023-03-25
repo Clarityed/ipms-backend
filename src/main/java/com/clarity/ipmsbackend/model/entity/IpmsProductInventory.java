@@ -41,9 +41,15 @@ public class IpmsProductInventory implements Serializable {
     private BigDecimal productInventorySurplusNum;
 
     /**
-     * 商品单位成本
+     * 库存商品单位成本
      */
     private BigDecimal productInventoryUnitCost;
+
+
+    /**
+     * 商品单位成本（不会为 0）
+     */
+    private BigDecimal productUnitCost;
 
     /**
      * 商品成本

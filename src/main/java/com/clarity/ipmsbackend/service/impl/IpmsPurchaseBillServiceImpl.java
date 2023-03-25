@@ -290,17 +290,13 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             for (IpmsPurchaseBillProductNum purchaseBillProductNum : sourcePurchaseBillProductList) {
                 temp++;
                 if (purchaseBillProductNum.getSurplusNeedWarehousingProductNum().doubleValue() != 0) {
-                    purchaseBill = new IpmsPurchaseBill();
-                    purchaseBill.setPurchaseBillId(purchaseSourceBillId);
-                    purchaseBill.setExecutionState(Constant.PART_OPERATED);
+                    sourcePurchaseBill.setExecutionState(Constant.PART_OPERATED);
                     ipmsPurchaseBillMapper.updateById(purchaseBill);
                     break;
                 }
                 if (temp == sourcePurchaseBillProductList.size()) {
-                    purchaseBill = new IpmsPurchaseBill();
-                    purchaseBill.setPurchaseBillId(purchaseSourceBillId);
-                    purchaseBill.setExecutionState(Constant.FULL_OPERATED);
-                    purchaseBill.setOffState(Constant.CLOSED);
+                    sourcePurchaseBill.setExecutionState(Constant.FULL_OPERATED);
+                    sourcePurchaseBill.setOffState(Constant.CLOSED);
                     ipmsPurchaseBillMapper.updateById(purchaseBill);
                 }
             }
@@ -429,7 +425,7 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
         unCheckingPurchaseBill.setPurchaseBillId(purchaseBill.getPurchaseBillId());
         unCheckingPurchaseBill.setCheckState(Constant.UNCHECKED);
         unCheckingPurchaseBill.setChecker(null);
-        unCheckingPurchaseBill.setCreateTime(null);
+        unCheckingPurchaseBill.setCheckTime(null);
         // 如果采购订单已经作为其他单据的源单，那么无法反审核，关闭的采购订单更是无法反审核，因为它肯定拥有源单
         // 采购入库单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。
         // 采购退货单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。（没有这种情况，采购退库单不作为其他单源）
@@ -467,26 +463,20 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                 queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("purchase_source_bill_id", purchaseSourceBillId);
                 Long checkedAndUncheckedCount = ipmsPurchaseBillMapper.selectCount(queryWrapper);
-                IpmsPurchaseBill sourcePurchaseBill;
+                IpmsPurchaseBill sourcePurchaseBill = ipmsPurchaseBillMapper.selectById(purchaseSourceBillId);
                 if (checkedAndUncheckedCount == 1) {
-                    sourcePurchaseBill = new IpmsPurchaseBill();
-                    sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
                     sourcePurchaseBill.setWarehousingState(Constant.NOT_OPERATED);
                     int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
                     if (result != 1) {
                         throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核采购入库单，状态修改失败");
                     }
                 } else if (checkedAndUncheckedCount > 1 && checkedCount > 1) {
-                    sourcePurchaseBill = new IpmsPurchaseBill();
-                    sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
                     sourcePurchaseBill.setWarehousingState(Constant.PART_OPERATED);
                     int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
                     if (result != 1) {
                         throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核采购入库单，状态修改失败");
                     }
                 } else {
-                    sourcePurchaseBill = new IpmsPurchaseBill();
-                    sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
                     sourcePurchaseBill.setWarehousingState(Constant.NOT_OPERATED);
                     int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
                     if (result != 1) {
@@ -574,13 +564,11 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                 purchaseBillProductNumQueryWrapper = new QueryWrapper<>();
                 purchaseBillProductNumQueryWrapper.eq("purchase_bill_id", purchaseSourceBillId);
                 List<IpmsPurchaseBillProductNum> sourceProductList = ipmsPurchaseBillProductNumService.list(purchaseBillProductNumQueryWrapper);
+                IpmsPurchaseBill sourcePurchaseBill = ipmsPurchaseBillMapper.selectById(purchaseSourceBillId);
                 int temp = 0;
                 for (IpmsPurchaseBillProductNum sourceProduct : sourceProductList) {
                     temp++;
-                    IpmsPurchaseBill sourcePurchaseBill;
                     if (!sourceProduct.getNeedWarehousingProductNum().equals(sourceProduct.getSurplusNeedWarehousingProductNum())) {
-                        sourcePurchaseBill = new IpmsPurchaseBill();
-                        sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
                         // 设置执行状态和关闭状态
                         sourcePurchaseBill.setExecutionState(Constant.PART_OPERATED);
                         sourcePurchaseBill.setOffState(Constant.NOT_CLOSED);
@@ -591,8 +579,6 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                         break;
                     }
                     if (temp == sourceProductList.size()) {
-                        sourcePurchaseBill = new IpmsPurchaseBill();
-                        sourcePurchaseBill.setPurchaseBillId(purchaseSourceBillId);
                         sourcePurchaseBill.setExecutionState(Constant.NOT_OPERATED);
                         sourcePurchaseBill.setOffState(Constant.NOT_CLOSED);
                         int result = ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
@@ -791,18 +777,14 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
             for (IpmsPurchaseBillProductNum purchaseBillProductNum : sourcePurchaseBillProductList) {
                 temp++;
                 if (purchaseBillProductNum.getSurplusNeedWarehousingProductNum().doubleValue() != 0) {
-                    newPurchaseBill = new IpmsPurchaseBill();
-                    newPurchaseBill.setPurchaseBillId(purchaseSourceBillId);
-                    newPurchaseBill.setExecutionState(Constant.PART_OPERATED);
-                    newPurchaseBill.setOffState(Constant.NOT_CLOSED);
+                    sourcePurchaseBill.setExecutionState(Constant.PART_OPERATED);
+                    sourcePurchaseBill.setOffState(Constant.NOT_CLOSED);
                     ipmsPurchaseBillMapper.updateById(newPurchaseBill);
                     break;
                 }
                 if (temp == sourcePurchaseBillProductList.size()) {
-                    newPurchaseBill = new IpmsPurchaseBill();
-                    newPurchaseBill.setPurchaseBillId(purchaseSourceBillId);
-                    newPurchaseBill.setExecutionState(Constant.FULL_OPERATED);
-                    newPurchaseBill.setOffState(Constant.CLOSED);
+                    sourcePurchaseBill.setExecutionState(Constant.FULL_OPERATED);
+                    sourcePurchaseBill.setOffState(Constant.CLOSED);
                     ipmsPurchaseBillMapper.updateById(newPurchaseBill);
                 }
             }

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsProductionBillMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsProductionBill">
+            <id property="productionBillId" column="production_bill_id" jdbcType="BIGINT"/>
+            <result property="productionSourceBillId" column="production_source_bill_id" jdbcType="BIGINT"/>
+            <result property="productionBillCode" column="production_bill_code" jdbcType="VARCHAR"/>
+            <result property="productionBillDate" column="production_bill_date" jdbcType="VARCHAR"/>
+            <result property="productionBillBusinessType" column="production_bill_business_type" jdbcType="VARCHAR"/>
+            <result property="employeeId" column="employee_id" jdbcType="BIGINT"/>
+            <result property="departmentId" column="department_id" jdbcType="BIGINT"/>
+            <result property="storekeeperId" column="storekeeper_id" jdbcType="BIGINT"/>
+            <result property="productionBillReturnReason" column="production_bill_return_reason" jdbcType="VARCHAR"/>
+            <result property="productionBillRemark" column="production_bill_remark" jdbcType="VARCHAR"/>
+            <result property="productId" column="product_id" jdbcType="BIGINT"/>
+            <result property="warehouseId" column="warehouse_id" jdbcType="BIGINT"/>
+            <result property="warehousePositionId" column="warehouse_position_id" jdbcType="BIGINT"/>
+            <result property="needWarehousingProductNum" column="need_warehousing_product_num" jdbcType="DECIMAL"/>
+            <result property="surplusNeedWarehousingProductNum" column="surplus_need_warehousing_product_num" jdbcType="DECIMAL"/>
+            <result property="planCommencementDate" column="plan_commencement_date" jdbcType="VARCHAR"/>
+            <result property="planCompletionDate" column="plan_completion_date" jdbcType="VARCHAR"/>
+            <result property="productRemark" column="product_remark" jdbcType="VARCHAR"/>
+            <result property="productionBillType" column="production_bill_type" jdbcType="VARCHAR"/>
+            <result property="founder" column="founder" jdbcType="VARCHAR"/>
+            <result property="modifier" column="modifier" jdbcType="VARCHAR"/>
+            <result property="checker" column="checker" jdbcType="VARCHAR"/>
+            <result property="finisher" column="finisher" jdbcType="VARCHAR"/>
+            <result property="checkState" column="check_state" jdbcType="TINYINT"/>
+            <result property="pickingExecutionState" column="picking_execution_state" jdbcType="TINYINT"/>
+            <result property="pickingState" column="picking_state" jdbcType="TINYINT"/>
+            <result property="warehousingExecutionState" column="warehousing_execution_state" jdbcType="TINYINT"/>
+            <result property="warehousingState" column="warehousing_state" jdbcType="TINYINT"/>
+            <result property="finishState" column="finish_state" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="checkTime" column="check_time" jdbcType="TIMESTAMP"/>
+            <result property="finishTime" column="finish_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        production_bill_id,production_source_bill_id,production_bill_code,
+        production_bill_date,production_bill_business_type,employee_id,
+        department_id,storekeeper_id,production_bill_return_reason,
+        production_bill_remark,product_id,warehouse_id,
+        warehouse_position_id,need_warehousing_product_num,surplus_need_warehousing_product_num,
+        plan_commencement_date,plan_completion_date,product_remark,
+        production_bill_type,founder,modifier,
+        checker,finisher,check_state,
+        picking_execution_state,picking_state,warehousing_execution_state,
+        warehousing_state,finish_state,create_time,
+        update_time,check_time,finish_time,
+        is_delete
+    </sql>
+</mapper>

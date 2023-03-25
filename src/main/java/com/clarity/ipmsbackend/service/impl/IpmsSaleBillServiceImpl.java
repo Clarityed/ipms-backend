@@ -294,18 +294,14 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
             for (IpmsSaleBillProductNum saleBillProductNum : sourceSaleBillProductList) {
                 temp++;
                 if (saleBillProductNum.getSurplusNeedDeliveryProductNum().doubleValue() != 0) {
-                    saleBill = new IpmsSaleBill();
-                    saleBill.setSaleBillId(saleSourceBillId);
-                    saleBill.setExecutionState(Constant.PART_OPERATED);
-                    ipmsSaleBillMapper.updateById(saleBill);
+                    sourceSaleBill.setExecutionState(Constant.PART_OPERATED);
+                    ipmsSaleBillMapper.updateById(sourceSaleBill);
                     break;
                 }
                 if (temp == sourceSaleBillProductList.size()) {
-                    saleBill = new IpmsSaleBill();
-                    saleBill.setSaleBillId(saleSourceBillId);
-                    saleBill.setExecutionState(Constant.FULL_OPERATED);
-                    saleBill.setOffState(Constant.CLOSED);
-                    ipmsSaleBillMapper.updateById(saleBill);
+                    sourceSaleBill.setExecutionState(Constant.FULL_OPERATED);
+                    sourceSaleBill.setOffState(Constant.CLOSED);
+                    ipmsSaleBillMapper.updateById(sourceSaleBill);
                 }
             }
         }
@@ -431,7 +427,7 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
         unCheckingSaleBill.setSaleBillId(saleBill.getSaleBillId());
         unCheckingSaleBill.setCheckState(Constant.UNCHECKED);
         unCheckingSaleBill.setChecker(null);
-        unCheckingSaleBill.setCreateTime(null);
+        unCheckingSaleBill.setCheckTime(null);
         // 如果销售订单已经作为其他单据的源单，那么无法反审核，关闭的销售订单更是无法反审核，因为它肯定拥有源单
         // 销售出库单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。
         // 销售退货单第一种情况没有选单源并且也是已经作为其他单据的源单，那么无法反审核。（没有这种情况，销售退库单不作为其他单源）
@@ -469,26 +465,20 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
                 queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("sale_source_bill_id", saleSourceBillId);
                 Long checkedAndUncheckedCount = ipmsSaleBillMapper.selectCount(queryWrapper);
-                IpmsSaleBill sourceSaleBill;
+                IpmsSaleBill sourceSaleBill = ipmsSaleBillMapper.selectById(saleSourceBillId);
                 if (checkedAndUncheckedCount == 1) {
-                    sourceSaleBill = new IpmsSaleBill();
-                    sourceSaleBill.setSaleBillId(saleSourceBillId);
                     sourceSaleBill.setDeliveryState(Constant.NOT_OPERATED);
                     int result = ipmsSaleBillMapper.updateById(sourceSaleBill);
                     if (result != 1) {
                         throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核销售出库单，状态修改失败");
                     }
                 } else if (checkedAndUncheckedCount > 1 && checkedCount > 1) {
-                    sourceSaleBill = new IpmsSaleBill();
-                    sourceSaleBill.setSaleBillId(saleSourceBillId);
                     sourceSaleBill.setDeliveryState(Constant.PART_OPERATED);
                     int result = ipmsSaleBillMapper.updateById(sourceSaleBill);
                     if (result != 1) {
                         throw new BusinessException(ErrorCode.SYSTEM_ERROR, "反审核销售出库单，状态修改失败");
                     }
                 } else {
-                    sourceSaleBill = new IpmsSaleBill();
-                    sourceSaleBill.setSaleBillId(saleSourceBillId);
                     sourceSaleBill.setDeliveryState(Constant.NOT_OPERATED);
                     int result = ipmsSaleBillMapper.updateById(sourceSaleBill);
                     if (result != 1) {
@@ -575,13 +565,11 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
                 saleBillProductNumQueryWrapper = new QueryWrapper<>();
                 saleBillProductNumQueryWrapper.eq("sale_bill_id", saleSourceBillId);
                 List<IpmsSaleBillProductNum> sourceProductList = ipmsSaleBillProductNumService.list(saleBillProductNumQueryWrapper);
+                IpmsSaleBill sourceSaleBill = ipmsSaleBillMapper.selectById(saleSourceBillId);
                 int temp = 0;
                 for (IpmsSaleBillProductNum sourceProduct : sourceProductList) {
                     temp++;
-                    IpmsSaleBill sourceSaleBill;
                     if (!sourceProduct.getNeedDeliveryProductNum().equals(sourceProduct.getSurplusNeedDeliveryProductNum())) {
-                        sourceSaleBill = new IpmsSaleBill();
-                        sourceSaleBill.setSaleBillId(saleSourceBillId);
                         // 设置执行状态和关闭状态
                         sourceSaleBill.setExecutionState(Constant.PART_OPERATED);
                         sourceSaleBill.setOffState(Constant.NOT_CLOSED);
@@ -592,8 +580,6 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
                         break;
                     }
                     if (temp == sourceProductList.size()) {
-                        sourceSaleBill = new IpmsSaleBill();
-                        sourceSaleBill.setSaleBillId(saleSourceBillId);
                         sourceSaleBill.setExecutionState(Constant.NOT_OPERATED);
                         sourceSaleBill.setOffState(Constant.NOT_CLOSED);
                         int result = ipmsSaleBillMapper.updateById(sourceSaleBill);
@@ -791,18 +777,14 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
             for (IpmsSaleBillProductNum saleBillProductNum : sourceSaleBillProductList) {
                 temp++;
                 if (saleBillProductNum.getSurplusNeedDeliveryProductNum().doubleValue() != 0) {
-                    newSaleBill = new IpmsSaleBill();
-                    newSaleBill.setSaleBillId(saleSourceBillId);
-                    newSaleBill.setExecutionState(Constant.PART_OPERATED);
-                    newSaleBill.setOffState(Constant.NOT_CLOSED);
+                    sourceSaleBill.setExecutionState(Constant.PART_OPERATED);
+                    sourceSaleBill.setOffState(Constant.NOT_CLOSED);
                     ipmsSaleBillMapper.updateById(newSaleBill);
                     break;
                 }
                 if (temp == sourceSaleBillProductList.size()) {
-                    newSaleBill = new IpmsSaleBill();
-                    newSaleBill.setSaleBillId(saleSourceBillId);
-                    newSaleBill.setExecutionState(Constant.FULL_OPERATED);
-                    newSaleBill.setOffState(Constant.CLOSED);
+                    sourceSaleBill.setExecutionState(Constant.FULL_OPERATED);
+                    sourceSaleBill.setOffState(Constant.CLOSED);
                     ipmsSaleBillMapper.updateById(newSaleBill);
                 }
             }
