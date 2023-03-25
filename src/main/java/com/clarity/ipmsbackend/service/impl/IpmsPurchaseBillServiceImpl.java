@@ -779,13 +779,13 @@ public class IpmsPurchaseBillServiceImpl extends ServiceImpl<IpmsPurchaseBillMap
                 if (purchaseBillProductNum.getSurplusNeedWarehousingProductNum().doubleValue() != 0) {
                     sourcePurchaseBill.setExecutionState(Constant.PART_OPERATED);
                     sourcePurchaseBill.setOffState(Constant.NOT_CLOSED);
-                    ipmsPurchaseBillMapper.updateById(newPurchaseBill);
+                    ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
                     break;
                 }
                 if (temp == sourcePurchaseBillProductList.size()) {
                     sourcePurchaseBill.setExecutionState(Constant.FULL_OPERATED);
                     sourcePurchaseBill.setOffState(Constant.CLOSED);
-                    ipmsPurchaseBillMapper.updateById(newPurchaseBill);
+                    ipmsPurchaseBillMapper.updateById(sourcePurchaseBill);
                 }
             }
         }

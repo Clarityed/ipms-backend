@@ -7,6 +7,7 @@ import com.clarity.ipmsbackend.common.ResultUtils;
 import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.productionbill.AddProductionBillRequest;
+import com.clarity.ipmsbackend.model.dto.productionbill.UpdateProductionBillRequest;
 import com.clarity.ipmsbackend.service.IpmsProductionBillService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -117,6 +118,24 @@ public class IpmsProductionBillController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
         int result = ipmsProductionBillService.deleteProductionBillById(id);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 修改生产单据（生产员、生产主管）
+     *
+     * @param updateProductionBillRequest
+     * @param request
+     * @return
+     */
+    @PutMapping("/updateProductionBill")
+    @ApiOperation("修改生产单据（生产员、生产主管）")
+    @AuthCheck(anyRole = {UserConstant.PRODUCT_ROLE, UserConstant.PRODUCT_ROLE_SUPER})
+    public BaseResponse<Integer> updateProductionBill(@RequestBody UpdateProductionBillRequest updateProductionBillRequest, HttpServletRequest request) {
+        if (updateProductionBillRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int result = ipmsProductionBillService.updateProductionBill(updateProductionBillRequest, request);
         return ResultUtils.success(result);
     }
 }

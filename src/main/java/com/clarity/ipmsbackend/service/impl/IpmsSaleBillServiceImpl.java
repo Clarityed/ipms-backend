@@ -779,13 +779,13 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
                 if (saleBillProductNum.getSurplusNeedDeliveryProductNum().doubleValue() != 0) {
                     sourceSaleBill.setExecutionState(Constant.PART_OPERATED);
                     sourceSaleBill.setOffState(Constant.NOT_CLOSED);
-                    ipmsSaleBillMapper.updateById(newSaleBill);
+                    ipmsSaleBillMapper.updateById(sourceSaleBill);
                     break;
                 }
                 if (temp == sourceSaleBillProductList.size()) {
                     sourceSaleBill.setExecutionState(Constant.FULL_OPERATED);
                     sourceSaleBill.setOffState(Constant.CLOSED);
-                    ipmsSaleBillMapper.updateById(newSaleBill);
+                    ipmsSaleBillMapper.updateById(sourceSaleBill);
                 }
             }
         }

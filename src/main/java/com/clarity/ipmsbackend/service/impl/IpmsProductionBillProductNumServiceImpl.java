@@ -197,7 +197,252 @@ public class IpmsProductionBillProductNumServiceImpl extends ServiceImpl<IpmsPro
 
     @Override
     public int updateProductionBillProductAndNum(UpdateProductionProductNumRequest updateProductionProductNumRequest, IpmsProductionBill productionBill) {
-        return 0;
+        Long productionBillProductId = updateProductionProductNumRequest.getProductionBillProductId();
+        if (productionBillProductId == null || productionBillProductId < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据商品库存 id 为空或者不合法");
+        }
+        // 判断生产单据是否存在
+        IpmsProductionBillProductNum productionBillProduct = ipmsProductionBillProductNumMapper.selectById(productionBillProductId);
+        if (productionBillProduct == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产单据商品不存在");
+        }
+        Long productId = updateProductionProductNumRequest.getProductId();
+        if (productId == null || productId < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产单据商品 id 为空或者不合法");
+        }
+        // 判断要修改成的商品是否存在
+        IpmsProduct product = ipmsProductService.getById(productId);
+        if (product == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品不存在");
+        }
+        // 仓库是否为空
+        Long warehouseId = updateProductionProductNumRequest.getWarehouseId();
+        Long warehousePositionId = updateProductionProductNumRequest.getWarehousePositionId();
+        if (warehouseId != null) {
+            IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+            // 仓位为空抛出异常
+            if (warehouse == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓库不存在");
+            }
+            // 如果仓位不为空，判断是否有开启仓位管理
+            Integer isWarehousePositionManagement = warehouse.getIsWarehousePositionManagement();
+            if (isWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+                // 开启仓位管理必须要有仓位 id
+                if (warehousePositionId != null) {
+                    IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                    if (warehousePosition == null) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓位不存在");
+                    }
+                }
+            }
+        }
+        // 商品数量，单价，价格验证
+        // 商品数量，不能为空，且必须大于 0
+        BigDecimal productNum = updateProductionProductNumRequest.getProductNum();
+        if (productNum == null || productNum.doubleValue() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品数量为空");
+        }
+        // 更新对象
+        IpmsProductionBillProductNum productionBillProductNum = new IpmsProductionBillProductNum();
+        BeanUtils.copyProperties(updateProductionProductNumRequest, productionBillProductNum);
+        productionBillProductNum.setUpdateTime(new Date());
+        String productionBillType = productionBill.getProductionBillType();
+        // 对于生产领料单来说源单是生产任务单，对于生产退货单源单是生产领料单
+        Long productionSourceBillId = productionBill.getProductionSourceBillId();
+        QueryWrapper<IpmsProductionBillProductNum> productionBillProductNumQueryWrapper;
+        if (productionBillType != null) {
+            switch (productionBillType) {
+                case ProductionBillConstant.PRODUCTION_TASK_ORDER:
+                    // 生产任务单的商品，无特殊操作
+                    BigDecimal productMaterialMole = updateProductionProductNumRequest.getProductMaterialMole();
+                    if (productMaterialMole != null) {
+                        if (productMaterialMole.doubleValue() <= 0) {
+                            throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品材料分子小于等于 0");
+                        }
+                    }
+                    productionBillProductNum.setNeedExecutionProductNum(productNum);
+                    productionBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+                    break;
+                case ProductionBillConstant.PRODUCTION_PICKING_ORDER:
+                    // 生产领料单的商品，如果有源单生产任务单那么必须修改源单对应商品的剩余商品数量
+                    if (productionSourceBillId != null && productionSourceBillId > 0) {
+                        productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                        productionBillProductNumQueryWrapper.eq("production_bill_id", productionSourceBillId);
+                        productionBillProductNumQueryWrapper.eq("product_id", productId);
+                        IpmsProductionBillProductNum productionSourceBillProduct = ipmsProductionBillProductNumMapper.selectOne(productionBillProductNumQueryWrapper);
+                        if (productionSourceBillProduct != null) {
+                            // 查找到生产任务单剩余需要出库的商品数量
+                            BigDecimal sourceSurplusNeedExecutionProductNum = productionSourceBillProduct.getSurplusNeedExecutionProductNum();
+                            // 查找到原来生产领料单需要出库的商品数量
+                            BigDecimal oldNeedExecutionProductNum = productionBillProduct.getNeedExecutionProductNum();
+                            // 现在更新的商品数量 productNum
+                            // 得出现在和原来数量的差值
+                            BigDecimal differenceValue = productNum.subtract(oldNeedExecutionProductNum);
+                            // 如果大于 0，说明生产领料单据的商品数量变多，生产任务单的剩余商品数量应该减少
+                            // 但是不能小于 0
+                            if (differenceValue.doubleValue() > 0) {
+                                BigDecimal reduceAfterSourceSurplusNeedExecutionProductNum = sourceSurplusNeedExecutionProductNum.subtract(differenceValue);
+                                if (reduceAfterSourceSurplusNeedExecutionProductNum.doubleValue() < 0) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产任务单没有更多的商品可以出库了");
+                                }
+                                productionSourceBillProduct.setSurplusNeedExecutionProductNum(reduceAfterSourceSurplusNeedExecutionProductNum);
+                                int updateSuperBill = ipmsProductionBillProductNumMapper.updateById(productionSourceBillProduct);
+                                if (updateSuperBill != 1) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                            if (differenceValue.doubleValue() < 0) {
+                                BigDecimal addAfterSourceSurplusNeedDeliveryProductNum = sourceSurplusNeedExecutionProductNum.add(differenceValue.abs());
+                                if (addAfterSourceSurplusNeedDeliveryProductNum.doubleValue() > productionSourceBillProduct.getNeedExecutionProductNum().doubleValue()) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产任务单已经达到可出库的最大商品数量");
+                                }
+                                productionSourceBillProduct.setSurplusNeedExecutionProductNum(addAfterSourceSurplusNeedDeliveryProductNum);
+                                int updateSuperBill = ipmsProductionBillProductNumMapper.updateById(productionSourceBillProduct);
+                                if (updateSuperBill != 1) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                        }
+                    }
+                    productionBillProductNum.setNeedExecutionProductNum(productNum);
+                    productionBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+                    break;
+                case ProductionBillConstant.PRODUCTION_RETURN_ORDER:
+                    // 生产退料单的商品，如果有源单生产领料单那么必须修改源单对应商品的剩余商品数量
+                    if (productionSourceBillId != null && productionSourceBillId > 0) {
+                        productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                        productionBillProductNumQueryWrapper.eq("production_bill_id", productionSourceBillId);
+                        productionBillProductNumQueryWrapper.eq("product_id", productId);
+                        IpmsProductionBillProductNum productionSourceBillProduct = ipmsProductionBillProductNumMapper.selectOne(productionBillProductNumQueryWrapper);
+                        if (productionSourceBillProduct != null) {
+                            // 查找到生产领料单剩余需要出库的商品数量
+                            BigDecimal sourceSurplusNeedExecutionProductNum = productionSourceBillProduct.getSurplusNeedExecutionProductNum();
+                            // 查找到原来生产退料单需要出库的商品数量
+                            BigDecimal oldNeedExecutionProductNum = productionBillProduct.getNeedExecutionProductNum();
+                            // 现在更新的商品数量 productNum
+                            // 得出现在和原来数量的差值
+                            BigDecimal differenceValue = productNum.subtract(oldNeedExecutionProductNum);
+                            // 如果大于 0，说明生产领料单据的商品数量变多，生产订单的剩余商品数量应该减少
+                            // 但是不能小于 0
+                            if (differenceValue.doubleValue() > 0) {
+                                BigDecimal reduceAfterSourceSurplusNeedExecutionProductNum = sourceSurplusNeedExecutionProductNum.subtract(differenceValue);
+                                if (reduceAfterSourceSurplusNeedExecutionProductNum.doubleValue() < 0) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产领料单没有更多的商品可以退货了");
+                                }
+                                productionSourceBillProduct.setSurplusNeedExecutionProductNum(reduceAfterSourceSurplusNeedExecutionProductNum);
+                                int updateSuperBill = ipmsProductionBillProductNumMapper.updateById(productionSourceBillProduct);
+                                if (updateSuperBill != 1) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                            if (differenceValue.doubleValue() < 0) {
+                                BigDecimal addAfterSourceSurplusNeedDeliveryProductNum = sourceSurplusNeedExecutionProductNum.add(differenceValue.abs());
+                                if (addAfterSourceSurplusNeedDeliveryProductNum.doubleValue() > productionSourceBillProduct.getNeedExecutionProductNum().doubleValue()) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产领料单已经达到可退货的最大商品数量");
+                                }
+                                productionSourceBillProduct.setSurplusNeedExecutionProductNum(addAfterSourceSurplusNeedDeliveryProductNum);
+                                int updateSuperBill = ipmsProductionBillProductNumMapper.updateById(productionSourceBillProduct);
+                                if (updateSuperBill != 1) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                        }
+                    }
+                    productionBillProductNum.setNeedExecutionProductNum(productNum);
+                    productionBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+                    break;
+                case ProductionBillConstant.PRODUCTION_RECEIPT_ORDER:
+                    // 生产入库单的商品，如果有源单生产任务单那么必须修改源单对应商品的剩余商品数量
+                    if (productionSourceBillId != null && productionSourceBillId > 0) {
+                        IpmsProductionBill productionSourceBillProduct = ipmsProductionBillService.getById(productionSourceBillId);
+                        if (productionSourceBillProduct != null) {
+                            // 查找到生产任务单剩余需要出库的商品数量
+                            BigDecimal sourceSurplusNeedWarehousingProductNum = productionSourceBillProduct.getSurplusNeedWarehousingProductNum();
+                            // 查找到原来生产入库单需要出库的商品数量
+                            BigDecimal oldNeedExecutionProductNum = productionBillProduct.getNeedExecutionProductNum();
+                            // 现在更新的商品数量 productNum
+                            // 得出现在和原来数量的差值
+                            BigDecimal differenceValue = productNum.subtract(oldNeedExecutionProductNum);
+                            // 如果大于 0，说明生产入库单据的商品数量变多，生产任务单的剩余商品数量应该减少
+                            // 但是不能小于 0
+                            if (differenceValue.doubleValue() > 0) {
+                                BigDecimal reduceAfterSourceSurplusNeedExecutionProductNum = sourceSurplusNeedWarehousingProductNum.subtract(differenceValue);
+                                if (reduceAfterSourceSurplusNeedExecutionProductNum.doubleValue() < 0) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产任务单没有更多的商品可以出库了");
+                                }
+                                productionSourceBillProduct.setSurplusNeedWarehousingProductNum(reduceAfterSourceSurplusNeedExecutionProductNum);
+                                boolean result = ipmsProductionBillService.updateById(productionSourceBillProduct);
+                                if (!result) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                            if (differenceValue.doubleValue() < 0) {
+                                BigDecimal addAfterSourceSurplusNeedDeliveryProductNum = sourceSurplusNeedWarehousingProductNum.add(differenceValue.abs());
+                                if (addAfterSourceSurplusNeedDeliveryProductNum.doubleValue() > productionSourceBillProduct.getNeedWarehousingProductNum().doubleValue()) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产任务单已经达到可出库的最大商品数量");
+                                }
+                                productionSourceBillProduct.setSurplusNeedWarehousingProductNum(addAfterSourceSurplusNeedDeliveryProductNum);
+                                boolean result = ipmsProductionBillService.updateById(productionSourceBillProduct);
+                                if (!result) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                        }
+                    }
+                    productionBillProductNum.setNeedExecutionProductNum(productNum);
+                    productionBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+                    break;
+                case ProductionBillConstant.PRODUCTION_STOCK_RETURN_ORDER:
+                    // 生产退库单的商品，如果有源单生产入库单那么必须修改源单对应商品的剩余商品数量
+                    if (productionSourceBillId != null && productionSourceBillId > 0) {
+                        productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                        productionBillProductNumQueryWrapper.eq("production_bill_id", productionSourceBillId);
+                        productionBillProductNumQueryWrapper.eq("product_id", productId);
+                        IpmsProductionBillProductNum productionSourceBillProduct = ipmsProductionBillProductNumMapper.selectOne(productionBillProductNumQueryWrapper);
+                        if (productionSourceBillProduct != null) {
+                            // 查找到生产入库单剩余需要出库的商品数量
+                            BigDecimal sourceSurplusNeedExecutionProductNum = productionSourceBillProduct.getSurplusNeedExecutionProductNum();
+                            // 查找到原来生产退库单需要出库的商品数量
+                            BigDecimal oldNeedExecutionProductNum = productionBillProduct.getNeedExecutionProductNum();
+                            // 现在更新的商品数量 productNum
+                            // 得出现在和原来数量的差值
+                            BigDecimal differenceValue = productNum.subtract(oldNeedExecutionProductNum);
+                            // 如果大于 0，说明生产入库单据的商品数量变多，生产订单的剩余商品数量应该减少
+                            // 但是不能小于 0
+                            if (differenceValue.doubleValue() > 0) {
+                                BigDecimal reduceAfterSourceSurplusNeedExecutionProductNum = sourceSurplusNeedExecutionProductNum.subtract(differenceValue);
+                                if (reduceAfterSourceSurplusNeedExecutionProductNum.doubleValue() < 0) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产入库单没有更多的商品可以退货了");
+                                }
+                                productionSourceBillProduct.setSurplusNeedExecutionProductNum(reduceAfterSourceSurplusNeedExecutionProductNum);
+                                int updateSuperBill = ipmsProductionBillProductNumMapper.updateById(productionSourceBillProduct);
+                                if (updateSuperBill != 1) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                            if (differenceValue.doubleValue() < 0) {
+                                BigDecimal addAfterSourceSurplusNeedDeliveryProductNum = sourceSurplusNeedExecutionProductNum.add(differenceValue.abs());
+                                if (addAfterSourceSurplusNeedDeliveryProductNum.doubleValue() > productionSourceBillProduct.getNeedExecutionProductNum().doubleValue()) {
+                                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产入库单已经达到可退货的最大商品数量");
+                                }
+                                productionSourceBillProduct.setSurplusNeedExecutionProductNum(addAfterSourceSurplusNeedDeliveryProductNum);
+                                int updateSuperBill = ipmsProductionBillProductNumMapper.updateById(productionSourceBillProduct);
+                                if (updateSuperBill != 1) {
+                                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新上级单据剩余商品数量失败");
+                                }
+                            }
+                        }
+                    }
+                    productionBillProductNum.setNeedExecutionProductNum(productNum);
+                    productionBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+                    break;
+            }
+        }
+        int result = ipmsProductionBillProductNumMapper.updateById(productionBillProductNum);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生产单据商品更新失败");
+        }
+        return result;
     }
 }
 

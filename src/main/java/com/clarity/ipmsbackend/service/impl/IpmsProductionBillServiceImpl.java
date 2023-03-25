@@ -13,6 +13,7 @@ import com.clarity.ipmsbackend.mapper.IpmsProductionBillMapper;
 import com.clarity.ipmsbackend.model.dto.productionbill.AddProductionBillRequest;
 import com.clarity.ipmsbackend.model.dto.productionbill.UpdateProductionBillRequest;
 import com.clarity.ipmsbackend.model.dto.productionbill.productnum.AddProductionProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.productionbill.productnum.UpdateProductionProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionBillVO;
@@ -374,7 +375,7 @@ public class IpmsProductionBillServiceImpl extends ServiceImpl<IpmsProductionBil
             } else if (productionBillType.equals(ProductionBillConstant.PRODUCTION_RECEIPT_ORDER)) {
                 BigDecimal surplusNeedWarehousingProductNum = sourceProductionBill.getSurplusNeedWarehousingProductNum();
                 if (surplusNeedWarehousingProductNum.doubleValue() != 0) {
-                    sourceProductionBill.setPickingExecutionState(Constant.PART_OPERATED);
+                    sourceProductionBill.setWarehousingExecutionState(Constant.PART_OPERATED);
                 } else {
                     sourceProductionBill.setWarehousingExecutionState(Constant.FULL_OPERATED);
                     sourceProductionBill.setFinishState(ProductionBillConstant.FINISHED);
@@ -898,7 +899,222 @@ public class IpmsProductionBillServiceImpl extends ServiceImpl<IpmsProductionBil
 
     @Override
     public int updateProductionBill(UpdateProductionBillRequest updateProductionBillRequest, HttpServletRequest request) {
-        return 0;
+        Long productionBillId = updateProductionBillRequest.getProductionBillId();
+        if (productionBillId == null || productionBillId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据 id 为空或者不合法");
+        }
+        // 判断该单据是否存在
+        IpmsProductionBill oldProductionBill = ipmsProductionBillMapper.selectById(productionBillId);
+        if (oldProductionBill == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "单据不存在");
+        }
+        Integer checkState = oldProductionBill.getCheckState();
+        if (Constant.CHECKED == checkState) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据已审核，无法修改");
+        }
+        String productionBillCode = updateProductionBillRequest.getProductionBillCode();
+        if (productionBillCode != null) {
+            if (!productionBillCode.equals(oldProductionBill.getProductionBillCode())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据编号不支持修改");
+            }
+        }
+        Long employeeId = updateProductionBillRequest.getEmployeeId();
+        Long departmentId = updateProductionBillRequest.getDepartmentId();
+        if (employeeId != null && employeeId > 0) {
+            IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+            if (employee == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "职员不存在");
+            }
+        }
+        if (departmentId != null && departmentId > 0) {
+            IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+            if (department == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "部门不存在");
+            }
+        }
+        String productionBillType = updateProductionBillRequest.getProductionBillType();
+        if (productionBillType != null) {
+            if (!productionBillType.equals(oldProductionBill.getProductionBillType())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不能修改");
+            }
+        }
+        // 仓管员 id，可以为空，如果不为空，那么必须存在该员工
+        Long storekeeperId = updateProductionBillRequest.getStorekeeperId();
+        if (storekeeperId != null) {
+            IpmsEmployee validEmployee = ipmsEmployeeService.getById(storekeeperId);
+            if (validEmployee == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据仓管不存在");
+            }
+        }
+        // 生产单据的商品及商品数量至少存在一个
+        List<UpdateProductionProductNumRequest> updateProductionProductNumRequestList = updateProductionBillRequest.getUpdateProductionProductNumRequestList();
+        if (updateProductionProductNumRequestList == null || updateProductionProductNumRequestList.size() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "生产的商品为空，至少要存在一个生产商品");
+        }
+        String productionBillBusinessType = updateProductionBillRequest.getProductionBillBusinessType();
+        String productionBillReturnReason = updateProductionBillRequest.getProductionBillReturnReason();
+        Long productId = updateProductionBillRequest.getProductId();
+        Long warehouseId = updateProductionBillRequest.getWarehouseId();
+        Long warehousePositionId = updateProductionBillRequest.getWarehousePositionId();
+        BigDecimal productNum = updateProductionBillRequest.getProductNum();
+        String planCompletionDate = updateProductionBillRequest.getPlanCompletionDate();
+        String planCommencementDate = updateProductionBillRequest.getPlanCommencementDate();
+        String productRemark = updateProductionBillRequest.getProductRemark();
+        boolean validPickingAndReceipt = productionBillBusinessType != null || productionBillReturnReason != null || productId != null || warehouseId != null ||
+                warehousePositionId != null || productNum != null || planCompletionDate != null || planCommencementDate != null || productRemark != null;
+        boolean validReturnAndStockReturn = productionBillBusinessType != null || productId != null || warehouseId != null ||
+                warehousePositionId != null || productNum != null || planCompletionDate != null || planCommencementDate != null || productRemark != null;
+        switch (oldProductionBill.getProductionBillType()) {
+            case ProductionBillConstant.PRODUCTION_TASK_ORDER:
+                if (productionBillReturnReason != null) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "不需要输入退料或者退库原因");
+                }
+                if (storekeeperId != null) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "不需要仓管 id");
+                }
+                if (productId != null) {
+                    IpmsProduct product = ipmsProductService.getById(productId);
+                    if (product == null) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "的商品不存在");
+                    }
+                }
+                if (warehouseId != null) {
+                    IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+                    if (warehouse == null) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "商品的仓库不存在");
+                    }
+                    Integer isWarehousePositionManagement = warehouse.getIsWarehousePositionManagement();
+                    if (WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT == isWarehousePositionManagement) {
+                        if (warehousePositionId == null || warehousePositionId <= 0) {
+                            throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "商品的仓位 id 为空或者不合法");
+                        }
+                        IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                        if (warehousePosition == null) {
+                            throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "商品的仓位不存在");
+                        }
+                        if (!warehouse.getWarehouseId().equals(warehousePosition.getWarehouseId())) {
+                            throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "商品的仓位不属于该仓库");
+                        }
+                    } else {
+                        if (warehousePositionId != null) {
+                            throw new BusinessException(ErrorCode.PARAMS_ERROR, "未开启仓位管理，不应该有仓位 id");
+                        }
+                    }
+                }
+                if (productNum != null) {
+                    if (productNum.doubleValue() <= 0) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "商品数量为空或者数量小于等于 0");
+                    }
+                }
+                break;
+            case ProductionBillConstant.PRODUCTION_PICKING_ORDER:
+            case ProductionBillConstant.PRODUCTION_RECEIPT_ORDER:
+                if (validPickingAndReceipt) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "请检查表单数据，" + productionBillType + "不需要输入生产单据业务类型、生产单据退还原因、" +
+                            "父级商品 id、父级商品仓库 id、父级商品仓位 id、需要入库的商品数量、计划开工日期、计划完工日期和商品备注");
+                }
+                break;
+            case ProductionBillConstant.PRODUCTION_RETURN_ORDER:
+            case ProductionBillConstant.PRODUCTION_STOCK_RETURN_ORDER:
+                if (validReturnAndStockReturn) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "请检查表单数据，" + productionBillType + "不需要输入生产单据业务类型、" +
+                            "父级商品 id、父级商品仓库 id、父级商品仓位 id、需要入库的商品数量、计划开工日期、计划完工日期和商品备注");
+                }
+                break;
+        }
+        // 更新生产单据
+        IpmsProductionBill newProductionBill = new IpmsProductionBill();
+        BeanUtils.copyProperties(updateProductionBillRequest, newProductionBill);
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        newProductionBill.setModifier(loginUser.getUserName());
+        newProductionBill.setUpdateTime(new Date());
+        int result = ipmsProductionBillMapper.updateById(newProductionBill);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "修改生产单据失败");
+        }
+        List<Long> updateAndInsertProductionBillProductList = new ArrayList<>();
+        for (UpdateProductionProductNumRequest updateProductionProductNumRequest : updateProductionProductNumRequestList) {
+            Long productionBillProductId = updateProductionProductNumRequest.getProductionBillProductId();
+            // 如果存在 productionBillProductId，那么肯定是要更新的数据，进行更新，并且存入列表中
+            if (productionBillProductId != null && productionBillProductId > 0) {
+                updateAndInsertProductionBillProductList.add(productionBillProductId);
+                ipmsProductionBillProductNumService.updateProductionBillProductAndNum(updateProductionProductNumRequest, oldProductionBill);
+            } else {
+                // 否则，就是插入新的数据
+                AddProductionProductNumRequest addProductionProductNumRequest = new AddProductionProductNumRequest();
+                BeanUtils.copyProperties(updateProductionProductNumRequest, addProductionProductNumRequest);
+                long insertProductionBillProductId = ipmsProductionBillProductNumService.addProductionBillProductAndNum(addProductionProductNumRequest, oldProductionBill);
+                if (insertProductionBillProductId < 0) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "增加生产单据商品失败");
+                }
+                updateAndInsertProductionBillProductList.add(insertProductionBillProductId);
+            }
+        }
+        if (updateAndInsertProductionBillProductList.size() > 0) {
+            // 如果更新生产单据商品的 id 不在这个列表内，那么删除生产单据
+            QueryWrapper<IpmsProductionBillProductNum> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("production_bill_id", productionBillId);
+            queryWrapper.notIn("production_bill_product_id", updateAndInsertProductionBillProductList);
+            List<IpmsProductionBillProductNum> willRemoveProductionBillProductList = ipmsProductionBillProductNumService.list(queryWrapper);
+            for (IpmsProductionBillProductNum willRemoveProductionBillProduct : willRemoveProductionBillProductList) {
+                // 即将被删除的数据，如果是来源源单，恢复原单源的数据
+                QueryWrapper<IpmsProductionBillProductNum> productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                productionBillProductNumQueryWrapper.eq("production_bill_id", oldProductionBill.getProductionSourceBillId());
+                productionBillProductNumQueryWrapper.eq("product_id", willRemoveProductionBillProduct.getProductId());
+                IpmsProductionBillProductNum sourceProductionBillProduct = ipmsProductionBillProductNumService.getOne(productionBillProductNumQueryWrapper);
+                if (sourceProductionBillProduct != null) {
+                    sourceProductionBillProduct.setSurplusNeedExecutionProductNum(willRemoveProductionBillProduct.getNeedExecutionProductNum());
+                    ipmsProductionBillProductNumService.updateById(sourceProductionBillProduct);
+                }
+            }
+            // 删除
+            ipmsProductionBillProductNumService.remove(queryWrapper);
+        }
+        // 生产订单修改不会有什么状态改变
+        // 生产退货单修改也不会有什么状态改变，因为生产出库单，只有审核状态
+        // 生产出库单修改会有 3 种情况：
+        // 第一种：生产订单的完全执行状态改为部分执行状态，已关闭状态改为未关闭状态
+        // 第二种：生产订单的部分执行状态改为完全执行状态，未关闭状态改为已关闭状态
+        // 第三种：生产订单的部分执行状态不变，未关闭状态不变
+        // 最后就是不做任何修改的操作，那么就是不变
+        Long productionSourceBillId = oldProductionBill.getProductionSourceBillId();
+        if (productionSourceBillId != null && productionSourceBillId > 0) {
+            // 如果代码执行到这里，那么已经修改完了数据里面生产订单剩余需要出库的商品数量
+            IpmsProductionBill sourceProductionBill = ipmsProductionBillMapper.selectById(productionSourceBillId);
+            if (ProductionBillConstant.PRODUCTION_PICKING_ORDER.equals(oldProductionBill.getProductionBillType()) ) {
+                QueryWrapper<IpmsProductionBillProductNum> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("production_bill_id", sourceProductionBill.getProductionBillId());
+                List<IpmsProductionBillProductNum> sourceProductionBillProductList = ipmsProductionBillProductNumService.list(queryWrapper);
+                int temp = 0;
+                for (IpmsProductionBillProductNum productionBillProductNum : sourceProductionBillProductList) {
+                    temp++;
+                    if (productionBillProductNum.getSurplusNeedExecutionProductNum().doubleValue() != 0) {
+                        sourceProductionBill.setPickingExecutionState(Constant.PART_OPERATED);
+                        ipmsProductionBillMapper.updateById(sourceProductionBill);
+                        break;
+                    }
+                    if (temp == sourceProductionBillProductList.size()) {
+                        sourceProductionBill.setPickingExecutionState(Constant.FULL_OPERATED);
+                        ipmsProductionBillMapper.updateById(sourceProductionBill);
+                    }
+                }
+            } else if (ProductionBillConstant.PRODUCTION_RECEIPT_ORDER.equals(oldProductionBill.getProductionBillType())) {
+                BigDecimal surplusNeedWarehousingProductNum = sourceProductionBill.getSurplusNeedWarehousingProductNum();
+                if (surplusNeedWarehousingProductNum.doubleValue() != 0) {
+                    sourceProductionBill.setWarehousingExecutionState(Constant.PART_OPERATED);
+                    sourceProductionBill.setFinisher(null);
+                    sourceProductionBill.setFinishTime(null);
+                    sourceProductionBill.setFinishState(ProductionBillConstant.UNFINISHED);
+                } else {
+                    sourceProductionBill.setWarehousingExecutionState(Constant.FULL_OPERATED);
+                    sourceProductionBill.setFinishState(ProductionBillConstant.FINISHED);
+                    sourceProductionBill.setFinishTime(new Date());
+                    sourceProductionBill.setFinisher(ipmsUserService.getLoginUser(request).getUserName());
+                }
+                ipmsProductionBillMapper.updateById(sourceProductionBill);
+            }
+        }
+        return result;
     }
 
     @Override
