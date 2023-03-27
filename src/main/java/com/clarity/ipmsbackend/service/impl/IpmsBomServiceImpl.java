@@ -22,6 +22,8 @@ import com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.model.vo.bom.SafeReverseQueryBomVO;
+import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionTaskOrderProductVO;
+import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionTaskOrderSubcomponentProductVO;
 import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.TimeFormatUtil;
@@ -518,6 +520,93 @@ public class IpmsBomServiceImpl extends ServiceImpl<IpmsBomMapper, IpmsBom>
             }
         }
         return safeReverseQueryBomVOList;
+    }
+
+    @Override
+    public Page<SafeProductionTaskOrderProductVO> selectCanAsBomProductList(FuzzyQueryRequest fuzzyQueryRequest) {
+        if (fuzzyQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        // 限制只能是查看可以作为 BOM 商品组件的商品信息，并且在这些商品中进行模糊查询
+        List<Long> productIdList = new ArrayList<>();
+        List<Long> canAsBomProductIdList = new ArrayList<>();
+        List<IpmsProduct> productList = ipmsProductService.list();
+        if (productList != null && productList.size() > 0) {
+            for (IpmsProduct product : productList) {
+                productIdList.add(product.getProductId());
+            }
+        } else {
+            return new PageDTO<>();
+        }
+        QueryWrapper<IpmsProductBom> productBomQueryWrapper;
+        for (Long productId : productIdList) {
+            productBomQueryWrapper = new QueryWrapper<>();
+            productBomQueryWrapper.eq("product_id", productId);
+            List<IpmsProductBom> productBomList = ipmsProductBomService.list(productBomQueryWrapper);
+            if (productBomList != null && productBomList.size() > 0) {
+                canAsBomProductIdList.add(productId);
+            }
+        }
+        if (canAsBomProductIdList.size() <= 0) {
+            return new PageDTO<>();
+        }
+        Page<IpmsProduct> page = new Page<>(fuzzyQueryRequest.getCurrentPage(), fuzzyQueryRequest.getPageSize());
+        QueryWrapper<IpmsProduct> productQueryWrapper = new QueryWrapper<>();
+        String fuzzyText = fuzzyQueryRequest.getFuzzyText();
+        if (StringUtils.isNotBlank(fuzzyText)) {
+            productQueryWrapper.like("product_code", fuzzyText)
+                    .and(productId -> productId.in("product_id", canAsBomProductIdList)).or()
+                    .like("product_name", fuzzyText)
+                    .and(productId -> productId.in("product_id", canAsBomProductIdList)).or()
+                    .like("product_specification", fuzzyText)
+                    .and(productId -> productId.in("product_id", canAsBomProductIdList)).or()
+                    .like("product_type", fuzzyText)
+                    .and(productId -> productId.in("product_id", canAsBomProductIdList)).or();
+        } else {
+            productQueryWrapper.in("product_id", canAsBomProductIdList);
+        }
+        Page<IpmsProduct> productPage = ipmsProductService.page(page, productQueryWrapper);
+        List<SafeProductionTaskOrderProductVO> safeProductionTaskOrderProductVOList = productPage.getRecords().stream().map(ipmsProduct -> {
+            SafeProductVO safeProductVO = new SafeProductVO();
+            BeanUtils.copyProperties(ipmsProduct, safeProductVO);
+            SafeProductionTaskOrderProductVO safeProductionTaskOrderProductVO = new SafeProductionTaskOrderProductVO();
+            Long unitId = ipmsProduct.getUnitId();
+            IpmsUnit unit = ipmsUnitService.getById(unitId);
+            safeProductVO.setUnitName(unit.getUnitName());
+            safeProductionTaskOrderProductVO.setSafeProductVO(safeProductVO);
+            SafeProductionTaskOrderSubcomponentProductVO safeProductionTaskOrderSubcomponentProductVO = new SafeProductionTaskOrderSubcomponentProductVO();
+            List<SafeProductionTaskOrderSubcomponentProductVO> safeProductionTaskOrderSubcomponentProductVOList = new ArrayList<>();
+            Long productId = ipmsProduct.getProductId();
+            if (productId == null || productId <= 0) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据库错误");
+            }
+            QueryWrapper<IpmsProductBom> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("product_id", productId);
+            List<IpmsProductBom> productBomList = ipmsProductBomService.list(queryWrapper);
+            for (IpmsProductBom productBom : productBomList) {
+                if (productBomList.get(0) == productBom) {
+                    IpmsBom bom = ipmsBomMapper.selectById(productBom.getBomId());
+                    safeProductionTaskOrderProductVO.setBomId(bom.getBomId());
+                    safeProductionTaskOrderProductVO.setBomCode(bom.getBomCode());
+                    safeProductionTaskOrderProductVO.setBomLevel(bom.getBomLevel());
+                }
+                IpmsProduct subcomponentProduct = ipmsProductService.getById(productBom.getSubcomponentProductId());
+                safeProductVO = new SafeProductVO();
+                BeanUtils.copyProperties(subcomponentProduct, safeProductVO);
+                Long subcomponentUnitId = subcomponentProduct.getUnitId();
+                IpmsUnit subcomponentProductUnit = ipmsUnitService.getById(subcomponentUnitId);
+                safeProductVO.setUnitName(subcomponentProductUnit.getUnitName());
+                safeProductionTaskOrderSubcomponentProductVO.setSafeProductVO(safeProductVO);
+                safeProductionTaskOrderSubcomponentProductVO.setProductMaterialNum(productBom.getSubcomponentMaterialNum());
+                safeProductionTaskOrderSubcomponentProductVOList.add(safeProductionTaskOrderSubcomponentProductVO);
+            }
+            safeProductionTaskOrderProductVO.setSafeProductionTaskOrderSubcomponentProductVOList(safeProductionTaskOrderSubcomponentProductVOList);
+            return safeProductionTaskOrderProductVO;
+        }).collect(Collectors.toList());
+        // 关键步骤
+        Page<SafeProductionTaskOrderProductVO> safeProductionTaskOrderProductVOPage = new PageDTO<>(productPage.getCurrent(), productPage.getSize(), productPage.getTotal());
+        safeProductionTaskOrderProductVOPage.setRecords(safeProductionTaskOrderProductVOList);
+        return safeProductionTaskOrderProductVOPage;
     }
 }
 

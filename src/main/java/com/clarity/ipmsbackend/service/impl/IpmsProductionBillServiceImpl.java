@@ -2,6 +2,7 @@ package com.clarity.ipmsbackend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.clarity.ipmsbackend.common.Constant;
 import com.clarity.ipmsbackend.common.ErrorCode;
@@ -15,14 +16,17 @@ import com.clarity.ipmsbackend.model.dto.productionbill.UpdateProductionBillRequ
 import com.clarity.ipmsbackend.model.dto.productionbill.productnum.AddProductionProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.productionbill.productnum.UpdateProductionProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
+import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionBillVO;
+import com.clarity.ipmsbackend.model.vo.productionbill.productnum.SafeProductionBillProductNumVO;
 import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.SplitUtil;
 import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import com.clarity.ipmsbackend.utils.ValidType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Clarity
@@ -71,6 +76,9 @@ public class IpmsProductionBillServiceImpl extends ServiceImpl<IpmsProductionBil
 
     @Resource
     private IpmsProductInventoryService ipmsProductInventoryService;
+
+    @Resource
+    private IpmsUnitService ipmsUnitService;
 
     @Override
     public String productionBillCodeAutoGenerate(String productionBillType) {
@@ -1081,7 +1089,7 @@ public class IpmsProductionBillServiceImpl extends ServiceImpl<IpmsProductionBil
         if (productionSourceBillId != null && productionSourceBillId > 0) {
             // 如果代码执行到这里，那么已经修改完了数据里面生产订单剩余需要出库的商品数量
             IpmsProductionBill sourceProductionBill = ipmsProductionBillMapper.selectById(productionSourceBillId);
-            if (ProductionBillConstant.PRODUCTION_PICKING_ORDER.equals(oldProductionBill.getProductionBillType()) ) {
+            if (ProductionBillConstant.PRODUCTION_PICKING_ORDER.equals(oldProductionBill.getProductionBillType())) {
                 QueryWrapper<IpmsProductionBillProductNum> queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("production_bill_id", sourceProductionBill.getProductionBillId());
                 List<IpmsProductionBillProductNum> sourceProductionBillProductList = ipmsProductionBillProductNumService.list(queryWrapper);
@@ -1118,11 +1126,545 @@ public class IpmsProductionBillServiceImpl extends ServiceImpl<IpmsProductionBil
     }
 
     @Override
-    public Page<SafeProductionBillVO> selectProductionBill(ProductionBillQueryRequest productionBillQueryRequest) {
-        return null;
+    public Page<SafeProductionBillVO> selectSourceProductionBill(ProductionBillQueryRequest productionBillQueryRequest) {
+        String productionBillType = productionBillQueryRequest.getProductionBillType();
+        if (productionBillType == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不能为空");
+        }
+        if (productionBillType.equals(ProductionBillConstant.PRODUCTION_TASK_ORDER)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, productionBillType + "没有源单据");
+        }
+        List<String> billTypeList = Arrays.asList(ProductionBillConstant.PRODUCTION_TASK_ORDER, ProductionBillConstant.PRODUCTION_PICKING_ORDER,
+                ProductionBillConstant.PRODUCTION_RETURN_ORDER, ProductionBillConstant.PRODUCTION_RECEIPT_ORDER, ProductionBillConstant.PRODUCTION_STOCK_RETURN_ORDER);
+        int validTypeResult = ValidType.valid(billTypeList, productionBillType);
+        if (validTypeResult == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不存在");
+        }
+        // 2. 进行分页查询，分情况查询，生产订单，生产出库单和生产退货单
+        Page<IpmsProductionBill> page = new Page<>(productionBillQueryRequest.getCurrentPage(), productionBillQueryRequest.getPageSize());
+        QueryWrapper<IpmsProductionBill> ipmsProductionBillQueryWrapper = new QueryWrapper<>();
+        String fuzzyText = productionBillQueryRequest.getFuzzyText();
+        // 不显示已经完全作为源单任务的源单信息
+        // 首先查出该类型的所有单据
+        // 然后根据上面的 id，查出对于的单据商品信息，查看对于的剩余被引用的单据商品数量，存在一个不为 0，那么该单据还能被查询出来
+        // 生产任务单特殊处理
+        // 定义一个列表用于存放还有剩余商品数量 id
+        List<Long> hasSurplusProductionBillProductIdList = new ArrayList<>();
+        QueryWrapper<IpmsProductionBill> productionBillQueryWrapper;
+        QueryWrapper<IpmsProductionBillProductNum> productionBillProductNumQueryWrapper;
+        switch (productionBillType) {
+            case ProductionBillConstant.PRODUCTION_RECEIPT_ORDER: {
+                // 搜索出所有的生产入库单信息
+                productionBillQueryWrapper = new QueryWrapper<>();
+                productionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER);
+                List<IpmsProductionBill> productionBillList = ipmsProductionBillMapper.selectList(productionBillQueryWrapper);
+                for (IpmsProductionBill productionBill : productionBillList) {
+                    if (productionBill.getSurplusNeedWarehousingProductNum().doubleValue() != 0) {
+                        hasSurplusProductionBillProductIdList.add(productionBill.getProductionBillId());
+                    }
+                }
+                if (hasSurplusProductionBillProductIdList.size() > 0) {
+                    if (StringUtils.isNotBlank(fuzzyText)) {
+                        if (StringUtils.isNotBlank(fuzzyText)) {
+                            ipmsProductionBillQueryWrapper.like("production_bill_code", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_settlement_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_remark", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_currency_type", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_exchange_rate", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList));
+                        }
+                    } else {
+                        ipmsProductionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER);
+                        ipmsProductionBillQueryWrapper.in("production_bill_id", hasSurplusProductionBillProductIdList);
+                    }
+                } else {
+                    return new PageDTO<>();
+                }
+                break;
+            }
+            case ProductionBillConstant.PRODUCTION_STOCK_RETURN_ORDER: {
+                productionBillQueryWrapper = new QueryWrapper<>();
+                productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                productionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER);
+                List<IpmsProductionBill> productionBillList = ipmsProductionBillMapper.selectList(productionBillQueryWrapper);
+                for (IpmsProductionBill productionBill : productionBillList) {
+                    productionBillProductNumQueryWrapper.eq("production_bill_id", productionBill.getProductionBillId());
+                    productionBillProductNumQueryWrapper.gt("surplus_need_execution_product_num", 0);
+                    List<IpmsProductionBillProductNum> list = ipmsProductionBillProductNumService.list(productionBillProductNumQueryWrapper);
+                    if (list != null && list.size() > 0) {
+                        hasSurplusProductionBillProductIdList.add(productionBill.getProductionBillId());
+                    }
+                }
+                if (hasSurplusProductionBillProductIdList.size() > 0) {
+                    if (StringUtils.isNotBlank(fuzzyText)) {
+                        if (StringUtils.isNotBlank(fuzzyText)) {
+                            ipmsProductionBillQueryWrapper.like("production_bill_code", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_settlement_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_remark", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_currency_type", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_exchange_rate", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList));
+                        }
+                    } else {
+                        ipmsProductionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_RECEIPT_ORDER);
+                        ipmsProductionBillQueryWrapper.in("production_bill_id", hasSurplusProductionBillProductIdList);
+                    }
+                } else {
+                    return new PageDTO<>();
+                }
+                break;
+            }
+            case ProductionBillConstant.PRODUCTION_PICKING_ORDER: {
+                productionBillQueryWrapper = new QueryWrapper<>();
+                productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                productionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER);
+                List<IpmsProductionBill> productionBillList = ipmsProductionBillMapper.selectList(productionBillQueryWrapper);
+                for (IpmsProductionBill productionBill : productionBillList) {
+                    productionBillProductNumQueryWrapper.eq("production_bill_id", productionBill.getProductionBillId());
+                    productionBillProductNumQueryWrapper.gt("surplus_need_execution_product_num", 0);
+                    List<IpmsProductionBillProductNum> list = ipmsProductionBillProductNumService.list(productionBillProductNumQueryWrapper);
+                    if (list != null && list.size() > 0) {
+                        hasSurplusProductionBillProductIdList.add(productionBill.getProductionBillId());
+                    }
+                }
+                if (hasSurplusProductionBillProductIdList.size() > 0) {
+                    if (StringUtils.isNotBlank(fuzzyText)) {
+                        if (StringUtils.isNotBlank(fuzzyText)) {
+                            ipmsProductionBillQueryWrapper.like("production_bill_code", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_settlement_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_remark", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_currency_type", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_exchange_rate", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList));
+                        }
+                    } else {
+                        ipmsProductionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_TASK_ORDER);
+                        ipmsProductionBillQueryWrapper.in("production_bill_id", hasSurplusProductionBillProductIdList);
+                    }
+                } else {
+                    return new PageDTO<>();
+                }
+                break;
+            }
+            case ProductionBillConstant.PRODUCTION_RETURN_ORDER: {
+                productionBillQueryWrapper = new QueryWrapper<>();
+                productionBillProductNumQueryWrapper = new QueryWrapper<>();
+                productionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER);
+                List<IpmsProductionBill> productionBillList = ipmsProductionBillMapper.selectList(productionBillQueryWrapper);
+                for (IpmsProductionBill productionBill : productionBillList) {
+                    productionBillProductNumQueryWrapper.eq("production_bill_id", productionBill.getProductionBillId());
+                    productionBillProductNumQueryWrapper.gt("surplus_need_execution_product_num", 0);
+                    List<IpmsProductionBillProductNum> list = ipmsProductionBillProductNumService.list(productionBillProductNumQueryWrapper);
+                    if (list != null && list.size() > 0) {
+                        hasSurplusProductionBillProductIdList.add(productionBill.getProductionBillId());
+                    }
+                }
+                if (hasSurplusProductionBillProductIdList.size() > 0) {
+                    if (StringUtils.isNotBlank(fuzzyText)) {
+                        if (StringUtils.isNotBlank(fuzzyText)) {
+                            ipmsProductionBillQueryWrapper.like("production_bill_code", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_settlement_date", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_remark", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_currency_type", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList)).or()
+                                    .like("production_bill_exchange_rate", fuzzyText)
+                                    .and(billType -> billType.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER))
+                                    .and(productionBillId -> productionBillId.in("production_bill_id", hasSurplusProductionBillProductIdList));
+                        }
+                    } else {
+                        ipmsProductionBillQueryWrapper.eq("production_bill_type", ProductionBillConstant.PRODUCTION_PICKING_ORDER);
+                        ipmsProductionBillQueryWrapper.in("production_bill_id", hasSurplusProductionBillProductIdList);
+                    }
+                } else {
+                    return new PageDTO<>();
+                }
+                break;
+            }
+        }
+        Page<IpmsProductionBill> productionBillPage = ipmsProductionBillMapper.selectPage(page, ipmsProductionBillQueryWrapper);
+        List<SafeProductionBillVO> safeProductionBillVOList = productionBillPage.getRecords().stream().map(ipmsProductionBill -> {
+            SafeProductionBillVO safeProductionBillVO = new SafeProductionBillVO();
+            BeanUtils.copyProperties(ipmsProductionBill, safeProductionBillVO);
+            // 设置源单相关的数据
+            Long productionSourceBillId = ipmsProductionBill.getProductionSourceBillId();
+            if (productionSourceBillId != null && productionSourceBillId > 0) {
+                IpmsProductionBill productionBill = ipmsProductionBillMapper.selectById(productionSourceBillId);
+                if (productionBill == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到源单，系统业务错误");
+                }
+                safeProductionBillVO.setProductionSourceBillCode(productionBill.getProductionBillCode());
+                safeProductionBillVO.setProductionSourceBillType(productionBill.getProductionBillType());
+            }
+            // 查询职员信息，并设置到返回封装类中
+            Long employeeId = ipmsProductionBill.getEmployeeId();
+            if (employeeId != null && employeeId > 0) {
+                IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+                if (employee == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到职员信息，系统业务错误");
+                }
+                safeProductionBillVO.setEmployeeId(employeeId);
+                safeProductionBillVO.setEmployeeName(employee.getEmployeeName());
+            }
+            // 查询部门信息，并设置到返回封装类中
+            Long departmentId = ipmsProductionBill.getDepartmentId();
+            if (departmentId != null && departmentId > 0) {
+                IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+                if (department == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到部门信息，系统业务错误");
+                }
+                safeProductionBillVO.setDepartmentId(departmentId);
+                safeProductionBillVO.setDepartmentName(department.getDepartmentName());
+            }
+            // 查询仓管信息
+            Long storekeeperId = ipmsProductionBill.getStorekeeperId();
+            if (storekeeperId != null && storekeeperId > 0) {
+                IpmsEmployee storekeeper = ipmsEmployeeService.getById(storekeeperId);
+                if (storekeeper == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到仓管信息，系统业务错误");
+                }
+                safeProductionBillVO.setStorekeeperId(storekeeperId);
+                safeProductionBillVO.setStorekeeperName(storekeeper.getEmployeeName());
+            }
+            // 查询生产任务单商品信息，注意不是子件物料信息，所以可能不存在
+            Long fatherProductId = ipmsProductionBill.getProductId();
+            if (fatherProductId != null && fatherProductId > 0) {
+                IpmsProduct fatherProduct = ipmsProductService.getById(fatherProductId);
+                if (fatherProduct == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品信息，系统业务错误");
+                }
+                Long unitId = fatherProduct.getUnitId();
+                IpmsUnit unit = ipmsUnitService.getById(unitId);
+                SafeProductVO safeProductVO = new SafeProductVO();
+                safeProductVO.setUnitName(unit.getUnitName());
+                BeanUtils.copyProperties(fatherProduct, safeProductVO);
+                safeProductionBillVO.setSafeProductVO(safeProductVO);
+            }
+            // 查询商品对于的仓库信息
+            Long fatherProductWarehouseId = ipmsProductionBill.getWarehouseId();
+            if (fatherProductWarehouseId != null && fatherProductWarehouseId > 0) {
+                IpmsWarehouse fatherProductWarehouse = ipmsWarehouseService.getById(fatherProductWarehouseId);
+                if (fatherProductWarehouse == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品对于的仓库信息，系统业务错误");
+                }
+                safeProductionBillVO.setWarehouseId(fatherProductWarehouseId);
+                safeProductionBillVO.setWarehouseName(fatherProductWarehouse.getWarehouseName());
+            }
+            // 查询商品对于的仓位信息
+            Long fatherProductWarehousePositionId = ipmsProductionBill.getWarehousePositionId();
+            if (fatherProductWarehousePositionId != null && fatherProductWarehousePositionId > 0) {
+                IpmsWarehousePosition fatherProductWarehousePosition = ipmsWarehousePositionService.getById(fatherProductWarehousePositionId);
+                if (fatherProductWarehousePosition == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品对于的仓库信息，系统业务错误");
+                }
+                safeProductionBillVO.setWarehouseId(fatherProductWarehousePositionId);
+                safeProductionBillVO.setWarehouseName(fatherProductWarehousePosition.getWarehousePositionName());
+            }
+            // 查询生产单据的子件材料信息，并设置到返回封装类中
+            Long productionBillId = ipmsProductionBill.getProductionBillId();
+            if (productionBillId != null && productionBillId > 0) {
+                QueryWrapper<IpmsProductionBillProductNum> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("production_bill_id", productionBillId);
+                List<IpmsProductionBillProductNum> productionBillProductList = ipmsProductionBillProductNumService.list(queryWrapper);
+                List<SafeProductionBillProductNumVO> safeProductionBillProductVOList = new ArrayList<>();
+                if (productionBillProductList != null && productionBillProductList.size() > 0) {
+                    for (IpmsProductionBillProductNum productionBillProduct : productionBillProductList) {
+                        SafeProductionBillProductNumVO safeProductionBillProductVO = new SafeProductionBillProductNumVO();
+                        BeanUtils.copyProperties(productionBillProduct, safeProductionBillProductVO);
+                        // 在生产商品中查询商品等信息，并设置到返回封装类中
+                        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+                        Long productId = productionBillProduct.getProductId();
+                        if (productId != null && productId > 0) {
+                            IpmsProduct product = ipmsProductService.getById(productId);
+                            if (product == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品，系统业务逻辑错误");
+                            }
+                            Long unitId = product.getUnitId();
+                            if (unitId == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位 id 为空，系统业务逻辑错误");
+                            }
+                            IpmsUnit productUnit = ipmsUnitService.getById(unitId);
+                            if (productUnit == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位为空，系统业务逻辑错误");
+                            }
+                            SafeProductVO safeProductVO = new SafeProductVO();
+                            BeanUtils.copyProperties(product, safeProductVO);
+                            safeProductVO.setUnitName(productUnit.getUnitName());
+                            safeProductionBillProductVO.setSafeProductVO(safeProductVO);
+                            productInventoryQueryWrapper.eq("product_id", productId);
+                        }
+                        Long warehouseId = productionBillProduct.getWarehouseId();
+                        if (warehouseId != null && warehouseId > 0) {
+                            IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+                            if (warehouse == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到仓库，系统业务逻辑错误");
+                            }
+                            safeProductionBillProductVO.setWarehouseId(warehouseId);
+                            safeProductionBillProductVO.setWarehouseName(warehouse.getWarehouseName());
+                            productInventoryQueryWrapper.eq("warehouse_id", warehouseId);
+                        }
+                        Long warehousePositionId = productionBillProduct.getWarehousePositionId();
+                        if (warehousePositionId != null && warehousePositionId > 0) {
+                            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                            if (warehousePosition != null) {
+                                safeProductionBillProductVO.setWarehousePositionId(warehousePositionId);
+                                safeProductionBillProductVO.setWarehousePositionName(warehousePosition.getWarehousePositionName());
+                                productInventoryQueryWrapper.eq("warehouse_position_id", warehousePositionId);
+                            }
+                        }
+                        // 查询库存
+                        IpmsProductInventory productInventory = ipmsProductInventoryService.getOne(productInventoryQueryWrapper);
+                        if (productInventory != null) {
+                            safeProductionBillProductVO.setAvailableInventory(productInventory.getProductInventorySurplusNum());
+                        }
+                        safeProductionBillProductVOList.add(safeProductionBillProductVO);
+                    }
+                }
+                safeProductionBillVO.setSafeProductionBillProductNumVOList(safeProductionBillProductVOList);
+            }
+            // 单据时间格式化
+            safeProductionBillVO.setCreateTime(TimeFormatUtil.dateFormatting(ipmsProductionBill.getCreateTime()));
+            safeProductionBillVO.setUpdateTime(TimeFormatUtil.dateFormatting(ipmsProductionBill.getUpdateTime()));
+            safeProductionBillVO.setCheckTime(TimeFormatUtil.dateFormatting(ipmsProductionBill.getCheckTime()));
+            return safeProductionBillVO;
+        }).collect(Collectors.toList());
+        // 关键步骤
+        Page<SafeProductionBillVO> safeProductionBillVOPage = new PageDTO<>(productionBillPage.getCurrent(), productionBillPage.getSize(), productionBillPage.getTotal());
+        safeProductionBillVOPage.setRecords(safeProductionBillVOList);
+        return safeProductionBillVOPage;
+    }
+
+    @Override
+    public Page<SafeProductionBillVO> pagingFuzzyQuery(ProductionBillQueryRequest productionBillQueryRequest) {
+        String productionBillType = productionBillQueryRequest.getProductionBillType();
+        if (productionBillType == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不能为空");
+        }
+        List<String> billTypeList = Arrays.asList(ProductionBillConstant.PRODUCTION_TASK_ORDER, ProductionBillConstant.PRODUCTION_PICKING_ORDER,
+                ProductionBillConstant.PRODUCTION_RETURN_ORDER, ProductionBillConstant.PRODUCTION_RECEIPT_ORDER, ProductionBillConstant.PRODUCTION_STOCK_RETURN_ORDER);
+        int validTypeResult = ValidType.valid(billTypeList, productionBillType);
+        if (validTypeResult == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型不存在");
+        }
+        // 2. 进行分页查询，分情况查询，生产订单，生产出库单和生产退货单
+        Page<IpmsProductionBill> page = new Page<>(productionBillQueryRequest.getCurrentPage(), productionBillQueryRequest.getPageSize());
+        QueryWrapper<IpmsProductionBill> ipmsProductionBillQueryWrapper = new QueryWrapper<>();
+        String fuzzyText = productionBillQueryRequest.getFuzzyText();
+        if (StringUtils.isNotBlank(fuzzyText)) {
+            if (StringUtils.isNotBlank(fuzzyText)) {
+                ipmsProductionBillQueryWrapper.like("production_bill_code", fuzzyText)
+                        .and(billType -> billType.eq("production_bill_type", productionBillType)).or()
+                        .like("production_bill_date", fuzzyText)
+                        .and(billType -> billType.eq("production_bill_type", productionBillType)).or()
+                        .like("production_bill_settlement_date", fuzzyText)
+                        .and(billType -> billType.eq("production_bill_type", productionBillType)).or()
+                        .like("production_bill_remark", fuzzyText)
+                        .and(billType -> billType.eq("production_bill_type", productionBillType)).or()
+                        .like("production_bill_currency_type", fuzzyText)
+                        .and(billType -> billType.eq("production_bill_type", productionBillType)).or()
+                        .like("production_bill_exchange_rate", fuzzyText)
+                        .and(billType -> billType.eq("production_bill_type", productionBillType));
+            }
+        } else {
+            ipmsProductionBillQueryWrapper.eq("production_bill_type", productionBillType);
+        }
+        Page<IpmsProductionBill> productionBillPage = ipmsProductionBillMapper.selectPage(page, ipmsProductionBillQueryWrapper);
+        List<SafeProductionBillVO> safeProductionBillVOList = productionBillPage.getRecords().stream().map(ipmsProductionBill -> {
+            SafeProductionBillVO safeProductionBillVO = new SafeProductionBillVO();
+            BeanUtils.copyProperties(ipmsProductionBill, safeProductionBillVO);
+            // 设置源单相关的数据
+            Long productionSourceBillId = ipmsProductionBill.getProductionSourceBillId();
+            if (productionSourceBillId != null && productionSourceBillId > 0) {
+                IpmsProductionBill productionBill = ipmsProductionBillMapper.selectById(productionSourceBillId);
+                if (productionBill == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到源单，系统业务错误");
+                }
+                safeProductionBillVO.setProductionSourceBillCode(productionBill.getProductionBillCode());
+                safeProductionBillVO.setProductionSourceBillType(productionBill.getProductionBillType());
+            }
+            // 查询职员信息，并设置到返回封装类中
+            Long employeeId = ipmsProductionBill.getEmployeeId();
+            if (employeeId != null && employeeId > 0) {
+                IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+                if (employee == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到职员信息，系统业务错误");
+                }
+                safeProductionBillVO.setEmployeeId(employeeId);
+                safeProductionBillVO.setEmployeeName(employee.getEmployeeName());
+            }
+            // 查询部门信息，并设置到返回封装类中
+            Long departmentId = ipmsProductionBill.getDepartmentId();
+            if (departmentId != null && departmentId > 0) {
+                IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+                if (department == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到部门信息，系统业务错误");
+                }
+                safeProductionBillVO.setDepartmentId(departmentId);
+                safeProductionBillVO.setDepartmentName(department.getDepartmentName());
+            }
+            // 查询仓管信息
+            Long storekeeperId = ipmsProductionBill.getStorekeeperId();
+            if (storekeeperId != null && storekeeperId > 0) {
+                IpmsEmployee storekeeper = ipmsEmployeeService.getById(storekeeperId);
+                if (storekeeper == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到仓管信息，系统业务错误");
+                }
+                safeProductionBillVO.setStorekeeperId(storekeeperId);
+                safeProductionBillVO.setStorekeeperName(storekeeper.getEmployeeName());
+            }
+            // 查询生产任务单商品信息，注意不是子件物料信息，所以可能不存在
+            Long fatherProductId = ipmsProductionBill.getProductId();
+            if (fatherProductId != null && fatherProductId > 0) {
+                IpmsProduct fatherProduct = ipmsProductService.getById(fatherProductId);
+                if (fatherProduct == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品信息，系统业务错误");
+                }
+                Long unitId = fatherProduct.getUnitId();
+                IpmsUnit unit = ipmsUnitService.getById(unitId);
+                SafeProductVO safeProductVO = new SafeProductVO();
+                safeProductVO.setUnitName(unit.getUnitName());
+                BeanUtils.copyProperties(fatherProduct, safeProductVO);
+                safeProductionBillVO.setSafeProductVO(safeProductVO);
+            }
+            // 查询商品对于的仓库信息
+            Long fatherProductWarehouseId = ipmsProductionBill.getWarehouseId();
+            if (fatherProductWarehouseId != null && fatherProductWarehouseId > 0) {
+                IpmsWarehouse fatherProductWarehouse = ipmsWarehouseService.getById(fatherProductWarehouseId);
+                if (fatherProductWarehouse == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品对于的仓库信息，系统业务错误");
+                }
+                safeProductionBillVO.setWarehouseId(fatherProductWarehouseId);
+                safeProductionBillVO.setWarehouseName(fatherProductWarehouse.getWarehouseName());
+            }
+            // 查询商品对于的仓位信息
+            Long fatherProductWarehousePositionId = ipmsProductionBill.getWarehousePositionId();
+            if (fatherProductWarehousePositionId != null && fatherProductWarehousePositionId > 0) {
+                IpmsWarehousePosition fatherProductWarehousePosition = ipmsWarehousePositionService.getById(fatherProductWarehousePositionId);
+                if (fatherProductWarehousePosition == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品对于的仓库信息，系统业务错误");
+                }
+                safeProductionBillVO.setWarehouseId(fatherProductWarehousePositionId);
+                safeProductionBillVO.setWarehouseName(fatherProductWarehousePosition.getWarehousePositionName());
+            }
+            // 查询生产单据的子件材料信息，并设置到返回封装类中
+            Long productionBillId = ipmsProductionBill.getProductionBillId();
+            if (productionBillId != null && productionBillId > 0) {
+                QueryWrapper<IpmsProductionBillProductNum> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("production_bill_id", productionBillId);
+                List<IpmsProductionBillProductNum> productionBillProductList = ipmsProductionBillProductNumService.list(queryWrapper);
+                List<SafeProductionBillProductNumVO> safeProductionBillProductVOList = new ArrayList<>();
+                if (productionBillProductList != null && productionBillProductList.size() > 0) {
+                    for (IpmsProductionBillProductNum productionBillProduct : productionBillProductList) {
+                        SafeProductionBillProductNumVO safeProductionBillProductVO = new SafeProductionBillProductNumVO();
+                        BeanUtils.copyProperties(productionBillProduct, safeProductionBillProductVO);
+                        // 在生产商品中查询商品等信息，并设置到返回封装类中
+                        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+                        Long productId = productionBillProduct.getProductId();
+                        if (productId != null && productId > 0) {
+                            IpmsProduct product = ipmsProductService.getById(productId);
+                            if (product == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品，系统业务逻辑错误");
+                            }
+                            Long unitId = product.getUnitId();
+                            if (unitId == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位 id 为空，系统业务逻辑错误");
+                            }
+                            IpmsUnit productUnit = ipmsUnitService.getById(unitId);
+                            if (productUnit == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位为空，系统业务逻辑错误");
+                            }
+                            SafeProductVO safeProductVO = new SafeProductVO();
+                            BeanUtils.copyProperties(product, safeProductVO);
+                            safeProductVO.setUnitName(productUnit.getUnitName());
+                            safeProductionBillProductVO.setSafeProductVO(safeProductVO);
+                            productInventoryQueryWrapper.eq("product_id", productId);
+                        }
+                        Long warehouseId = productionBillProduct.getWarehouseId();
+                        if (warehouseId != null && warehouseId > 0) {
+                            IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+                            if (warehouse == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到仓库，系统业务逻辑错误");
+                            }
+                            safeProductionBillProductVO.setWarehouseId(warehouseId);
+                            safeProductionBillProductVO.setWarehouseName(warehouse.getWarehouseName());
+                            productInventoryQueryWrapper.eq("warehouse_id", warehouseId);
+                        }
+                        Long warehousePositionId = productionBillProduct.getWarehousePositionId();
+                        if (warehousePositionId != null && warehousePositionId > 0) {
+                            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                            if (warehousePosition != null) {
+                                safeProductionBillProductVO.setWarehousePositionId(warehousePositionId);
+                                safeProductionBillProductVO.setWarehousePositionName(warehousePosition.getWarehousePositionName());
+                                productInventoryQueryWrapper.eq("warehouse_position_id", warehousePositionId);
+                            }
+                        }
+                        // 查询库存
+                        IpmsProductInventory productInventory = ipmsProductInventoryService.getOne(productInventoryQueryWrapper);
+                        if (productInventory != null) {
+                            safeProductionBillProductVO.setAvailableInventory(productInventory.getProductInventorySurplusNum());
+                        }
+                        safeProductionBillProductVOList.add(safeProductionBillProductVO);
+                    }
+                }
+                safeProductionBillVO.setSafeProductionBillProductNumVOList(safeProductionBillProductVOList);
+            }
+            // 单据时间格式化
+            safeProductionBillVO.setCreateTime(TimeFormatUtil.dateFormatting(ipmsProductionBill.getCreateTime()));
+            safeProductionBillVO.setUpdateTime(TimeFormatUtil.dateFormatting(ipmsProductionBill.getUpdateTime()));
+            safeProductionBillVO.setCheckTime(TimeFormatUtil.dateFormatting(ipmsProductionBill.getCheckTime()));
+            return safeProductionBillVO;
+        }).collect(Collectors.toList());
+        // 关键步骤
+        Page<SafeProductionBillVO> safeProductionBillVOPage = new PageDTO<>(productionBillPage.getCurrent(), productionBillPage.getSize(), productionBillPage.getTotal());
+        safeProductionBillVOPage.setRecords(safeProductionBillVOList);
+        return safeProductionBillVOPage;
     }
 }
-
 
 
 

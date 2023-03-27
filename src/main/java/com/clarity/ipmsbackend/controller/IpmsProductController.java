@@ -11,6 +11,8 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.product.AddProductRequest;
 import com.clarity.ipmsbackend.model.dto.product.UpdateProductRequest;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
+import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionTaskOrderProductVO;
+import com.clarity.ipmsbackend.service.IpmsBomService;
 import com.clarity.ipmsbackend.service.IpmsProductBomService;
 import com.clarity.ipmsbackend.service.IpmsProductService;
 import io.swagger.annotations.Api;
@@ -39,6 +41,9 @@ public class IpmsProductController {
 
     @Resource
     private IpmsProductBomService ipmsProductBomService;
+
+    @Resource
+    private IpmsBomService ipmsBomService;
 
     /**
      * 商品编号自动生成
@@ -158,5 +163,22 @@ public class IpmsProductController {
         }
         Page<SafeProductVO> safeProductVOPage = ipmsProductBomService.pagingFuzzyQueryCanAsProductOfBomSubComponent(fuzzyQueryRequest, request);
         return ResultUtils.success(safeProductVOPage);
+    }
+
+    /**
+     * 分页查询商品，且支持模糊查询，并且提供给生产员创建生产任务单时，查询能够作为父级商品的商品列表（生产员，生产主管）
+     *
+     * @param fuzzyQueryRequest
+     * @return
+     */
+    @GetMapping("/selectCanAsBomProductList")
+    @ApiOperation(value = "分页查询商品，且支持模糊查询，并且提供给生产员创建生产任务单时，查询能够作为父级商品的商品列表（生产员，生产主管）")
+    @AuthCheck(anyRole = {UserConstant.PRODUCT_ROLE, UserConstant.PRODUCT_ROLE_SUPER})
+    public BaseResponse<Page<SafeProductionTaskOrderProductVO>> selectCanAsBomProductList(FuzzyQueryRequest fuzzyQueryRequest) {
+        if (fuzzyQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeProductionTaskOrderProductVO> safeProductionTaskOrderProductVOPage = ipmsBomService.selectCanAsBomProductList(fuzzyQueryRequest);
+        return ResultUtils.success(safeProductionTaskOrderProductVOPage);
     }
 }

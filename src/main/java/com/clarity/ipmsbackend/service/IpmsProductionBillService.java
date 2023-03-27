@@ -68,10 +68,18 @@ public interface IpmsProductionBillService extends IService<IpmsProductionBill> 
     int updateProductionBill(UpdateProductionBillRequest updateProductionBillRequest, HttpServletRequest request);
 
     /**
-     * 生产单据查询（可作为选单源功能，生产单据列表查询功能，并且也支持模糊查询）
+     * 查询生产单据源单
      *
      * @param productionBillQueryRequest 生产单据查询请求
      * @return 为选单源提供的列表
      */
-    Page<SafeProductionBillVO> selectProductionBill(ProductionBillQueryRequest productionBillQueryRequest);
+    Page<SafeProductionBillVO> selectSourceProductionBill(ProductionBillQueryRequest productionBillQueryRequest);
+
+    /**
+     * 分页查询生产单据，且数据脱敏，且支持模糊查询
+     *
+     * @param productionBillQueryRequest 生产单据查询请求
+     * @return 对于类型单据信息列表
+     */
+    Page<SafeProductionBillVO> pagingFuzzyQuery(ProductionBillQueryRequest productionBillQueryRequest);
 }

@@ -9,6 +9,7 @@ import com.clarity.ipmsbackend.model.entity.IpmsBom;
 import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
 import com.clarity.ipmsbackend.model.vo.bom.SafeForwardQueryBomVO;
 import com.clarity.ipmsbackend.model.vo.bom.SafeReverseQueryBomVO;
+import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionTaskOrderProductVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -93,4 +94,12 @@ public interface IpmsBomService extends IService<IpmsBom> {
      * @return
      */
     List<SafeReverseQueryBomVO> getBomFatherProductOfSubComponentByProductCode(String productCode);
+
+    /**
+     * 查询可作为 BOM 商品列表
+     *
+     * @param fuzzyQueryRequest
+     * @return
+     */
+    Page<SafeProductionTaskOrderProductVO> selectCanAsBomProductList(FuzzyQueryRequest fuzzyQueryRequest);
 }

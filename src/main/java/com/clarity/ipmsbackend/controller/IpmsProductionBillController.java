@@ -1,13 +1,15 @@
 package com.clarity.ipmsbackend.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.clarity.ipmsbackend.annotation.AuthCheck;
-import com.clarity.ipmsbackend.common.BaseResponse;
-import com.clarity.ipmsbackend.common.ErrorCode;
-import com.clarity.ipmsbackend.common.ResultUtils;
+import com.clarity.ipmsbackend.common.*;
 import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.productionbill.AddProductionBillRequest;
 import com.clarity.ipmsbackend.model.dto.productionbill.UpdateProductionBillRequest;
+import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.productionbill.SafeProductionBillVO;
+import com.clarity.ipmsbackend.model.vo.purchasebill.SafePurchaseBillVO;
 import com.clarity.ipmsbackend.service.IpmsProductionBillService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -137,5 +139,39 @@ public class IpmsProductionBillController {
         }
         int result = ipmsProductionBillService.updateProductionBill(updateProductionBillRequest, request);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 查询生产单据源单（传递当前所要创建的单据类型）
+     *
+     * @param productionBillQueryRequest
+     * @return
+     */
+    @GetMapping("/selectSourceProductionBill")
+    @ApiOperation(value = "查询生产单据源单（传递当前所要创建的单据类型）（生产员、生产主管）")
+    @AuthCheck(anyRole = {UserConstant.PRODUCT_ROLE, UserConstant.PRODUCT_ROLE_SUPER})
+    public BaseResponse<Page<SafeProductionBillVO>> selectSourceProductionBill(ProductionBillQueryRequest productionBillQueryRequest) {
+        if (productionBillQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeProductionBillVO> selectSourceProductionBill = ipmsProductionBillService.selectSourceProductionBill(productionBillQueryRequest);
+        return ResultUtils.success(selectSourceProductionBill);
+    }
+
+    /**
+     * 分页查询生产单据，且数据脱敏，且支持模糊查询（生产员、生产主管）
+     *
+     * @param productionBillQueryRequest
+     * @return
+     */
+    @GetMapping("/pagingFuzzyQuery")
+    @ApiOperation(value = "分页查询生产单据，且数据脱敏，且支持模糊查询（生产员、生产主管）")
+    @AuthCheck(anyRole = {UserConstant.PRODUCT_ROLE, UserConstant.PRODUCT_ROLE_SUPER})
+    public BaseResponse<Page<SafeProductionBillVO>> pagingFuzzyQuery(ProductionBillQueryRequest productionBillQueryRequest) {
+        if (productionBillQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeProductionBillVO> safeProductionBillVOPage = ipmsProductionBillService.pagingFuzzyQuery(productionBillQueryRequest);
+        return ResultUtils.success(safeProductionBillVOPage);
     }
 }
