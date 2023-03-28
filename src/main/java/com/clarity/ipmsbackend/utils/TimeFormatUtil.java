@@ -21,7 +21,7 @@ public class TimeFormatUtil {
      * @return
      */
     public static String dateFormatting(Date date) {
-        String dateFormattingTime = "";
+        String dateFormattingTime = null;
         if (date != null) {
             Instant instant = date.toInstant();
             ZoneId zone = ZoneId.systemDefault();

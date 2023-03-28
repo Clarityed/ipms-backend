@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsInventoryBillMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsInventoryBill">
+            <id property="inventoryBillId" column="inventory_bill_id" jdbcType="BIGINT"/>
+            <result property="inventorySourceBillId" column="inventory_source_bill_id" jdbcType="BIGINT"/>
+            <result property="inventoryBillCode" column="inventory_bill_code" jdbcType="VARCHAR"/>
+            <result property="inventoryBillDate" column="inventory_bill_date" jdbcType="VARCHAR"/>
+            <result property="supplierId" column="supplier_id" jdbcType="BIGINT"/>
+            <result property="supplierLinkmanId" column="supplier_linkman_id" jdbcType="BIGINT"/>
+            <result property="customerId" column="customer_id" jdbcType="BIGINT"/>
+            <result property="customerLinkmanId" column="customer_linkman_id" jdbcType="BIGINT"/>
+            <result property="employeeId" column="employee_id" jdbcType="BIGINT"/>
+            <result property="departmentId" column="department_id" jdbcType="BIGINT"/>
+            <result property="transferDepartmentId" column="transfer_department_id" jdbcType="BIGINT"/>
+            <result property="inventoryBillBusinessType" column="inventory_bill_business_type" jdbcType="VARCHAR"/>
+            <result property="inventoryBillRemark" column="inventory_bill_remark" jdbcType="VARCHAR"/>
+            <result property="inventoryBillType" column="inventory_bill_type" jdbcType="VARCHAR"/>
+            <result property="founder" column="founder" jdbcType="VARCHAR"/>
+            <result property="modifier" column="modifier" jdbcType="VARCHAR"/>
+            <result property="checker" column="checker" jdbcType="VARCHAR"/>
+            <result property="checkState" column="check_state" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="checkTime" column="check_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        inventory_bill_id,inventory_source_bill_id,inventory_bill_code,
+        inventory_bill_date,supplier_id,supplier_linkman_id,
+        customer_id,customer_linkman_id,employee_id,
+        department_id,transfer_department_id,inventory_bill_business_type,
+        inventory_bill_remark,inventory_bill_type,founder,
+        modifier,checker,check_state,
+        create_time,update_time,check_time,
+        is_delete
+    </sql>
+</mapper>

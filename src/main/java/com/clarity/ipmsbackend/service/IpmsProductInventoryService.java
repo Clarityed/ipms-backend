@@ -1,10 +1,7 @@
 package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
-import com.clarity.ipmsbackend.model.entity.IpmsProductionBillProductNum;
-import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBillProductNum;
-import com.clarity.ipmsbackend.model.entity.IpmsSaleBillProductNum;
+import com.clarity.ipmsbackend.model.entity.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
@@ -68,6 +65,22 @@ public interface IpmsProductInventoryService extends IService<IpmsProductInvento
      * @return 1 - 成功， 0 - 失败
      */
     int reduceProductInventory(IpmsProductionBillProductNum productionBillProductNum);
+
+    /**
+     * 库存单据增加商品库存
+     *
+     * @param inventoryBillProductNum 库存单据商品及商品数量
+     * @return 1 - 成功， 0 - 失败
+     */
+    int addProductInventory(IpmsInventoryBillProductNum inventoryBillProductNum);
+
+    /**
+     * 库存单据减少商品库存
+     *
+     * @param inventoryBillProductNum 库存单据商品及商品数量
+     * @return 1 - 成功， 0 - 失败
+     */
+    int reduceProductInventory(IpmsInventoryBillProductNum inventoryBillProductNum);
 
     /**
      * 提供一个方法对仓库的记录进行删除，但是只允许删除剩余库存数为 0 的库存记录，为负库存，代表使用超过了当前库存，应该采购

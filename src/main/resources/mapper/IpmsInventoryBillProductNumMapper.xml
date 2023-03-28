@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clarity.ipmsbackend.mapper.IpmsInventoryBillProductNumMapper">
+
+    <resultMap id="BaseResultMap" type="com.clarity.ipmsbackend.model.entity.IpmsInventoryBillProductNum">
+            <id property="inventoryBillProductId" column="inventory_bill_product_id" jdbcType="BIGINT"/>
+            <result property="inventoryBillId" column="inventory_bill_id" jdbcType="BIGINT"/>
+            <result property="productId" column="product_id" jdbcType="BIGINT"/>
+            <result property="warehouseId" column="warehouse_id" jdbcType="BIGINT"/>
+            <result property="warehousePositionId" column="warehouse_position_id" jdbcType="BIGINT"/>
+            <result property="transferWarehouseId" column="transfer_warehouse_id" jdbcType="BIGINT"/>
+            <result property="transferWarehousePositionId" column="transfer_warehouse_position_id" jdbcType="BIGINT"/>
+            <result property="needExecutionProductNum" column="need_execution_product_num" jdbcType="DECIMAL"/>
+            <result property="surplusNeedExecutionProductNum" column="surplus_need_execution_product_num" jdbcType="DECIMAL"/>
+            <result property="unitPrice" column="unit_price" jdbcType="DECIMAL"/>
+            <result property="totalPrice" column="total_price" jdbcType="DECIMAL"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        inventory_bill_product_id,inventory_bill_id,product_id,
+        warehouse_id,warehouse_position_id,transfer_warehouse_id,
+        transfer_warehouse_position_id,need_execution_product_num,surplus_need_execution_product_num,
+        unit_price,total_price,create_time,
+        update_time,is_delete
+    </sql>
+</mapper>
