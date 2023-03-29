@@ -68,15 +68,15 @@ public class AddOtherDeliveryOrderRequest implements Serializable {
     private String inventoryBillRemark;
 
     /**
-     * 库存单据类型（其他入库单、只能是其他入库单）
+     * 库存单据类型（其他出库单、只能是其他出库单）
      */
-    @ApiModelProperty("库存单据类型（其他入库单、只能是其他入库单）")
+    @ApiModelProperty("库存单据类型（其他出库单、只能是其他出库单）")
     private String inventoryBillType;
 
     /**
-     * 增加其他入库单商品请求列表
+     * 增加其他出库单商品请求列表
      */
-    @ApiModelProperty("增加其他入库单商品请求列表")
+    @ApiModelProperty("增加其他出库单商品请求列表")
     private List<AddOtherDeliveryOrderProductNumRequest> addOtherDeliveryOrderProductNumRequestList;
 
     private static final long serialVersionUID = 1L;

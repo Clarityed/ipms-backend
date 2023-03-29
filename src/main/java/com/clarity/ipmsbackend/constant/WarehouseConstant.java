@@ -18,4 +18,14 @@ public class WarehouseConstant {
      * 关闭仓位管理
      */
     public static final int CLOSE_WAREHOUSE_POSITION_MANAGEMENT = 0;
+
+    /**
+     * 开启负库存 Negative inventory
+     */
+    public static final int OPEN_NEGATIVE_INVENTORY = 1;
+
+    /**
+     * 关闭负库存 Negative inventory
+     */
+    public static final int CLOSE_NEGATIVE_INVENTORY = 0;
 }

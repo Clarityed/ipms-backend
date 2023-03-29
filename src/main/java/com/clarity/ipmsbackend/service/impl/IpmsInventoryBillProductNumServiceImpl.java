@@ -9,6 +9,8 @@ import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.produc
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.productnum.UpdateOtherDeliveryOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.productnum.AddOtherReceiptOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.productnum.UpdateOtherReceiptOrderProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.productnum.AddWarehouseTransferOrderProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.productnum.UpdateWarehouseTransferOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.mapper.IpmsInventoryBillProductNumMapper;
 import com.clarity.ipmsbackend.service.IpmsInventoryBillProductNumService;
@@ -175,6 +177,92 @@ public class IpmsInventoryBillProductNumServiceImpl extends ServiceImpl<IpmsInve
         }
         IpmsInventoryBillProductNum inventoryBillProductNum = new IpmsInventoryBillProductNum();
         BeanUtils.copyProperties(addOtherDeliveryOrderProductNumRequest, inventoryBillProductNum);
+        inventoryBillProductNum.setInventoryBillId(inventoryBill.getInventoryBillId());
+        inventoryBillProductNum.setNeedExecutionProductNum(productNum);
+        inventoryBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+        inventoryBillProductNum.setCreateTime(new Date());
+        inventoryBillProductNum.setUpdateTime(new Date());
+        int result = ipmsInventoryBillProductNumMapper.insert(inventoryBillProductNum);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, inventoryBillType + "商品插入失败");
+        }
+        return inventoryBillProductNum.getInventoryBillProductId();
+    }
+
+    @Override
+    public long addWarehouseTransferOrderProductAndNum(AddWarehouseTransferOrderProductNumRequest addWarehouseTransferOrderProductNumRequest, IpmsInventoryBill inventoryBill) {
+        String inventoryBillType = inventoryBill.getInventoryBillType();
+        if (!InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER.equals(inventoryBillType)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据类型错误");
+        }
+        BigDecimal productNum = addWarehouseTransferOrderProductNumRequest.getProductNum();
+        if (productNum == null || productNum.doubleValue() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "商品数量为空或者小于对于 0");
+        }
+        Long productId = addWarehouseTransferOrderProductNumRequest.getProductId();
+        if (productId == null || productId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "商品 id 为空或者不合法");
+        }
+        Long warehouseId = addWarehouseTransferOrderProductNumRequest.getWarehouseId();
+        if (warehouseId == null || warehouseId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "调出仓库 id 为空或者不合法");
+        }
+        Long transferWarehouseId = addWarehouseTransferOrderProductNumRequest.getTransferWarehouseId();
+        if (transferWarehouseId == null || transferWarehouseId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "仓库 id 为空或者不合法");
+        }
+        IpmsProduct product = ipmsProductService.getById(productId);
+        if (product == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "商品不存在");
+        }
+        IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+        if (warehouse == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "调出商品仓库不存在");
+        }
+        Long warehousePositionId = addWarehouseTransferOrderProductNumRequest.getWarehousePositionId();
+        Integer isWarehousePositionManagement = warehouse.getIsWarehousePositionManagement();
+        if (isWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (warehousePositionId == null || warehousePositionId <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "调出仓位 id 为空或者不合法");
+            }
+            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+            if (warehousePosition == null) {
+                throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "商品调出仓位不存在");
+            }
+        } else {
+            if (warehousePositionId != null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "存在未开启仓位的调出仓库输入了调出仓位 id");
+            }
+        }
+        IpmsWarehouse transferWarehouse = ipmsWarehouseService.getById(transferWarehouseId);
+        if (transferWarehouse == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "调入商品仓库不存在");
+        }
+        Long transferWarehousePositionId = addWarehouseTransferOrderProductNumRequest.getTransferWarehousePositionId();
+        Integer transferWarehouseIsWarehousePositionManagement = transferWarehouse.getIsWarehousePositionManagement();
+        if (transferWarehouseIsWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (transferWarehousePositionId == null || transferWarehousePositionId <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "调入仓位 id 为空或者不合法");
+            }
+            IpmsWarehousePosition transferWarehousePosition = ipmsWarehousePositionService.getById(transferWarehousePositionId);
+            if (transferWarehousePosition == null) {
+                throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "商品调入仓位不存在");
+            }
+        } else {
+            if (transferWarehousePositionId != null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "存在未开启仓位的调入仓库输入了调入仓位 id");
+            }
+        }
+        if (warehouseId.equals(transferWarehouseId) && isWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (warehousePositionId.equals(transferWarehousePositionId)) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "相同仓库下至少仓位要不同");
+            }
+        }
+        if (warehouseId.equals(transferWarehouseId) && isWarehousePositionManagement == WarehouseConstant.CLOSE_WAREHOUSE_POSITION_MANAGEMENT) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "没有开启仓位管理的仓库，无法选择相同的仓库");
+        }
+        IpmsInventoryBillProductNum inventoryBillProductNum = new IpmsInventoryBillProductNum();
+        BeanUtils.copyProperties(addWarehouseTransferOrderProductNumRequest, inventoryBillProductNum);
         inventoryBillProductNum.setInventoryBillId(inventoryBill.getInventoryBillId());
         inventoryBillProductNum.setNeedExecutionProductNum(productNum);
         inventoryBillProductNum.setSurplusNeedExecutionProductNum(productNum);
@@ -377,6 +465,103 @@ public class IpmsInventoryBillProductNumServiceImpl extends ServiceImpl<IpmsInve
         }
         IpmsInventoryBillProductNum inventoryBillProductNum = new IpmsInventoryBillProductNum();
         BeanUtils.copyProperties(updateOtherDeliveryOrderProductNumRequest, inventoryBillProductNum);
+        inventoryBillProductNum.setNeedExecutionProductNum(productNum);
+        inventoryBillProductNum.setSurplusNeedExecutionProductNum(productNum);
+        inventoryBillProductNum.setUpdateTime(new Date());
+        int result = ipmsInventoryBillProductNumMapper.updateById(inventoryBillProductNum);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, inventoryBillType + "商品更新失败");
+        }
+        return result;
+    }
+
+    @Override
+    public int updateWarehouseTransferOrderProductAndNum(UpdateWarehouseTransferOrderProductNumRequest updateWarehouseTransferOrderProductNumRequest, IpmsInventoryBill inventoryBill) {
+        String inventoryBillType = inventoryBill.getInventoryBillType();
+        Long inventoryBillProductId = updateWarehouseTransferOrderProductNumRequest.getInventoryBillProductId();
+        if (inventoryBillProductId == null || inventoryBillProductId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "商品 id 为空或者不合法");
+        }
+        IpmsInventoryBillProductNum inventoryBillProduct = ipmsInventoryBillProductNumMapper.selectById(inventoryBillProductId);
+        if (inventoryBillProduct == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "库存单据商品不存在");
+        }
+        BigDecimal productNum = updateWarehouseTransferOrderProductNumRequest.getProductNum();
+        if (productNum != null) {
+            if (productNum.doubleValue() <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "商品数量不能等于 0");
+            }
+        }
+        Long productId = updateWarehouseTransferOrderProductNumRequest.getProductId();
+        if (productId != null && productId > 0) {
+            IpmsProduct product = ipmsProductService.getById(productId);
+            if (product == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品不存在");
+            }
+        }
+        if (productId != null && productId < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品 id 不合法");
+        }
+        Long warehouseId = updateWarehouseTransferOrderProductNumRequest.getWarehouseId();
+        if (warehouseId == null || warehouseId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "调出仓库 id 为空或者不合法");
+        }
+        Long transferWarehouseId = updateWarehouseTransferOrderProductNumRequest.getTransferWarehouseId();
+        if (transferWarehouseId == null || transferWarehouseId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "仓库 id 为空或者不合法");
+        }
+        IpmsProduct product = ipmsProductService.getById(productId);
+        if (product == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "商品不存在");
+        }
+        IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+        if (warehouse == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "调出商品仓库不存在");
+        }
+        Long warehousePositionId = updateWarehouseTransferOrderProductNumRequest.getWarehousePositionId();
+        Integer isWarehousePositionManagement = warehouse.getIsWarehousePositionManagement();
+        if (isWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (warehousePositionId == null || warehousePositionId <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "调出仓位 id 为空或者不合法");
+            }
+            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+            if (warehousePosition == null) {
+                throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "商品调出仓位不存在");
+            }
+        } else {
+            if (warehousePositionId != null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "存在未开启仓位的调出仓库输入了调出仓位 id");
+            }
+        }
+        IpmsWarehouse transferWarehouse = ipmsWarehouseService.getById(transferWarehouseId);
+        if (transferWarehouse == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "调入商品仓库不存在");
+        }
+        Long transferWarehousePositionId = updateWarehouseTransferOrderProductNumRequest.getTransferWarehousePositionId();
+        Integer transferWarehouseIsWarehousePositionManagement = transferWarehouse.getIsWarehousePositionManagement();
+        if (transferWarehouseIsWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (transferWarehousePositionId == null || transferWarehousePositionId <= 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "调入仓位 id 为空或者不合法");
+            }
+            IpmsWarehousePosition transferWarehousePosition = ipmsWarehousePositionService.getById(transferWarehousePositionId);
+            if (transferWarehousePosition == null) {
+                throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, inventoryBillType + "商品调入仓位不存在");
+            }
+        } else {
+            if (transferWarehousePositionId != null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "存在未开启仓位的调入仓库输入了调入仓位 id");
+            }
+        }
+        if (warehouseId.equals(transferWarehouseId) && isWarehousePositionManagement == WarehouseConstant.OPEN_WAREHOUSE_POSITION_MANAGEMENT) {
+            if (warehousePositionId.equals(transferWarehousePositionId)) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "相同仓库下至少仓位要不同");
+            }
+        }
+        if (warehouseId.equals(transferWarehouseId) && isWarehousePositionManagement == WarehouseConstant.CLOSE_WAREHOUSE_POSITION_MANAGEMENT) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "没有开启仓位管理的仓库，无法选择相同的仓库");
+        }
+        IpmsInventoryBillProductNum inventoryBillProductNum = new IpmsInventoryBillProductNum();
+        BeanUtils.copyProperties(updateWarehouseTransferOrderProductNumRequest, inventoryBillProductNum);
         inventoryBillProductNum.setNeedExecutionProductNum(productNum);
         inventoryBillProductNum.setSurplusNeedExecutionProductNum(productNum);
         inventoryBillProductNum.setUpdateTime(new Date());

@@ -18,6 +18,10 @@ import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.AddOthe
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.UpdateOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.productnum.AddOtherReceiptOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.productnum.UpdateOtherReceiptOrderProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.AddWarehouseTransferOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.UpdateWarehouseTransferOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.productnum.AddWarehouseTransferOrderProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.productnum.UpdateWarehouseTransferOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
@@ -25,6 +29,8 @@ import com.clarity.ipmsbackend.model.vo.inventorybill.otherdeliveryorder.SafeOth
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherdeliveryorder.productnum.SafeOtherDeliveryOrderProductNumVO;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherreceiptorder.SafeOtherReceiptOrderVO;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherreceiptorder.productnum.SafeOtherReceiptOrderProductNumVO;
+import com.clarity.ipmsbackend.model.vo.inventorybill.warehousetransferorder.SafeWarehouseTransferOrderVO;
+import com.clarity.ipmsbackend.model.vo.inventorybill.warehousetransferorder.productnum.SafeWarehouseTransferOrderProductNumVO;
 import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.SplitUtil;
@@ -225,7 +231,7 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
         }
         String inventoryBillCode = addOtherReceiptOrderRequest.getInventoryBillCode();
         QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
-        ipmsInventoryBillQueryWrapper.eq("inventory_bill_type", inventoryBillCode);
+        ipmsInventoryBillQueryWrapper.eq("inventory_bill_code", inventoryBillCode);
         IpmsInventoryBill ipmsInventoryBill = ipmsInventoryBillMapper.selectOne(ipmsInventoryBillQueryWrapper);
         if (ipmsInventoryBill != null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "编号重复");
@@ -322,7 +328,7 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
         }
         String inventoryBillCode = addOtherDeliveryOrderRequest.getInventoryBillCode();
         QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
-        ipmsInventoryBillQueryWrapper.eq("inventory_bill_type", inventoryBillCode);
+        ipmsInventoryBillQueryWrapper.eq("inventory_bill_code", inventoryBillCode);
         IpmsInventoryBill ipmsInventoryBill = ipmsInventoryBillMapper.selectOne(ipmsInventoryBillQueryWrapper);
         if (ipmsInventoryBill != null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "编号重复");
@@ -378,6 +384,71 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
     }
 
     @Override
+    public int addWarehouseTransferOrder(AddWarehouseTransferOrderRequest addWarehouseTransferOrderRequest, HttpServletRequest request) {
+        String inventoryBillType = addWarehouseTransferOrderRequest.getInventoryBillType();
+        this.validInventoryBillType(inventoryBillType);
+        if (!inventoryBillType.equals(InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该接口只能操作移仓单");
+        }
+        String inventoryBillDate = addWarehouseTransferOrderRequest.getInventoryBillDate();
+        if (inventoryBillDate == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "单据日期为空");
+        }
+        List<AddWarehouseTransferOrderProductNumRequest> addWarehouseTransferOrderProductNumRequestList = addWarehouseTransferOrderRequest.getAddWarehouseTransferOrderProductNumRequestList();
+        if (addWarehouseTransferOrderProductNumRequestList == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "商品为空");
+        }
+        if (addWarehouseTransferOrderProductNumRequestList.size() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "至少存在一个商品");
+        }
+        String inventoryBillCode = addWarehouseTransferOrderRequest.getInventoryBillCode();
+        QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillQueryWrapper.eq("inventory_bill_code", inventoryBillCode);
+        IpmsInventoryBill ipmsInventoryBill = ipmsInventoryBillMapper.selectOne(ipmsInventoryBillQueryWrapper);
+        if (ipmsInventoryBill != null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "编号重复");
+        }
+        Long employeeId = addWarehouseTransferOrderRequest.getEmployeeId();
+        Long departmentId = addWarehouseTransferOrderRequest.getDepartmentId();
+        Long transferDepartmentId = addWarehouseTransferOrderRequest.getTransferDepartmentId();
+        if (employeeId != null && employeeId > 0) {
+            IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+            if (employee == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, inventoryBillType + "的经办人不存在");
+            }
+        }
+        if (departmentId != null && departmentId > 0) {
+            IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+            if (department == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, inventoryBillType + "的调出部门不存在");
+            }
+        }
+        if (transferDepartmentId != null && transferDepartmentId > 0) {
+            IpmsDepartment transferDepartment = ipmsDepartmentService.getById(transferDepartmentId);
+            if (transferDepartment == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, inventoryBillType + "的调入部门不存在");
+            }
+        }
+        IpmsInventoryBill inventoryBill = new IpmsInventoryBill();
+        BeanUtils.copyProperties(addWarehouseTransferOrderRequest, inventoryBill);
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        inventoryBill.setFounder(loginUser.getUserName());
+        inventoryBill.setCreateTime(new Date());
+        inventoryBill.setUpdateTime(new Date());
+        int result = ipmsInventoryBillMapper.insert(inventoryBill);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, inventoryBillType + "插入数据失败");
+        }
+        for (AddWarehouseTransferOrderProductNumRequest addWarehouseTransferOrderProductNumRequest : addWarehouseTransferOrderProductNumRequestList) {
+            long addProductResult = ipmsInventoryBillProductNumService.addWarehouseTransferOrderProductAndNum(addWarehouseTransferOrderProductNumRequest, inventoryBill);
+            if (addProductResult < 0) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, inventoryBillType + "商品插入失败");
+            }
+        }
+        return result;
+    }
+
+    @Override
     @Transactional
     public int checkInventoryBill(long inventoryBillId, HttpServletRequest request) {
         if (inventoryBillId <= 0) {
@@ -395,26 +466,39 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
         IpmsInventoryBill checkingInventoryBill = new IpmsInventoryBill();
         checkingInventoryBill.setInventoryBillId(inventoryBill.getInventoryBillId());
         checkingInventoryBill.setCheckState(Constant.CHECKED);
+        QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper;
         if (InventoryBillConstant.OTHER_RECEIPT_ORDER.equals(inventoryBillType)) {
             // 其他入库单审核后要调用增加库存的方法
-            QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+            inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
             inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
-            List<IpmsInventoryBillProductNum> inventoryReturnProductList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
-            for (IpmsInventoryBillProductNum inventoryReturnProduct : inventoryReturnProductList) {
-                int result = ipmsProductInventoryService.addProductInventory(inventoryReturnProduct);
+            List<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+            for (IpmsInventoryBillProductNum inventoryBillProductNum : ipmsInventoryBillProductNumList) {
+                int result = ipmsProductInventoryService.addProductInventory(inventoryBillProductNum);
                 if (result != 1) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用增加库存的方法失败");
                 }
             }
         } else if (InventoryBillConstant.OTHER_DELIVERY_ORDER.equals(inventoryBillType)) {
             // 其他出库单审核后要调用减少库存的方法
-            QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+            inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
             inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
-            List<IpmsInventoryBillProductNum> inventoryReturnProductList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
-            for (IpmsInventoryBillProductNum inventoryReturnProduct : inventoryReturnProductList) {
-                int result = ipmsProductInventoryService.reduceProductInventory(inventoryReturnProduct);
+            List<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+            for (IpmsInventoryBillProductNum inventoryBillProductNum : ipmsInventoryBillProductNumList) {
+                int result = ipmsProductInventoryService.reduceProductInventory(inventoryBillProductNum);
                 if (result != 1) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用减少库存的方法失败");
+                }
+            }
+        } else if (InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER.equals(inventoryBillType)) {
+            // 移仓单审核扣减调出仓库的商品库存，增加调入仓库的商品库存
+            inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+            inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
+            List<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+            for (IpmsInventoryBillProductNum inventoryBillProductNum : ipmsInventoryBillProductNumList) {
+                int transferOutResult = ipmsProductInventoryService.reduceProductInventoryByTransfer(inventoryBillProductNum, Constant.CHECK_OPERATION);
+                int transferIntoResult = ipmsProductInventoryService.addProductInventoryByTransfer(inventoryBillProductNum, Constant.CHECK_OPERATION);
+                if (transferIntoResult != 1 || transferOutResult != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "移仓单审核失败");
                 }
             }
         }
@@ -458,9 +542,9 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
             // 调用减少库存的方法
             QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
             inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
-            List<IpmsInventoryBillProductNum> inventoryReturnProductList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
-            for (IpmsInventoryBillProductNum inventoryReturnProduct : inventoryReturnProductList) {
-                int result = ipmsProductInventoryService.reduceProductInventory(inventoryReturnProduct);
+            List<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+            for (IpmsInventoryBillProductNum inventoryBillProductNum : ipmsInventoryBillProductNumList) {
+                int result = ipmsProductInventoryService.reduceProductInventory(inventoryBillProductNum);
                 if (result != 1) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用减少库存的方法失败");
                 }
@@ -469,11 +553,23 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
             // 调用增加库存的方法
             QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
             inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
-            List<IpmsInventoryBillProductNum> inventoryReturnProductList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
-            for (IpmsInventoryBillProductNum inventoryReturnProduct : inventoryReturnProductList) {
-                int result = ipmsProductInventoryService.addProductInventory(inventoryReturnProduct);
+            List<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+            for (IpmsInventoryBillProductNum inventoryBillProductNum : ipmsInventoryBillProductNumList) {
+                int result = ipmsProductInventoryService.addProductInventory(inventoryBillProductNum);
                 if (result != 1) {
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "调用增加库存的方法失败");
+                }
+            }
+        } else if (InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER.equals(inventoryBillType)) {
+            // 与审核互逆
+            QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+            inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
+            List<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+            for (IpmsInventoryBillProductNum inventoryBillProductNum : ipmsInventoryBillProductNumList) {
+                int transferOutResult = ipmsProductInventoryService.reduceProductInventoryByTransfer(inventoryBillProductNum, Constant.UNCHECKED_OPERATION);
+                int transferIntoResult = ipmsProductInventoryService.addProductInventoryByTransfer(inventoryBillProductNum, Constant.UNCHECKED_OPERATION);
+                if (transferIntoResult != 1 || transferOutResult != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "移仓单反审核失败");
                 }
             }
         }
@@ -505,6 +601,7 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
         QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper;
         // 其他入库单删除无特殊操作
         // 其他出库单删除无特殊操作
+        // 移仓单删除无特殊操作
         int result = ipmsInventoryBillMapper.deleteById(id);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
@@ -726,6 +823,89 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
                 }
             }
             // 如果更新其他入库单商品的 id 不在这个列表内，那么删除其他入库单商品
+            QueryWrapper<IpmsInventoryBillProductNum> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("inventory_bill_id", inventoryBillId);
+            queryWrapper.notIn("inventory_bill_product_id", updateAndInsertInventoryBillProductList);
+            ipmsInventoryBillProductNumService.remove(queryWrapper);
+        }
+        return result;
+    }
+
+    @Override
+    public int updateWarehouseTransferOrder(UpdateWarehouseTransferOrderRequest updateWarehouseTransferOrderRequest, HttpServletRequest request) {
+        Long inventoryBillId = updateWarehouseTransferOrderRequest.getInventoryBillId();
+        if (inventoryBillId == null || inventoryBillId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "移仓单 id 为空或者不合法");
+        }
+        IpmsInventoryBill oldInventoryBill = ipmsInventoryBillMapper.selectById(inventoryBillId);
+        if (oldInventoryBill == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "移仓单不存在");
+        }
+        Integer checkState = oldInventoryBill.getCheckState();
+        String inventoryBillType = oldInventoryBill.getInventoryBillType();
+        if (Constant.CHECKED == checkState) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, inventoryBillType + "单据已审核，无法修改");
+        }
+        String inventoryBillCode = updateWarehouseTransferOrderRequest.getInventoryBillCode();
+        if (inventoryBillCode != null) {
+            if (!inventoryBillCode.equals(oldInventoryBill.getInventoryBillCode())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据编号不支持修改");
+            }
+        }
+        Long employeeId = updateWarehouseTransferOrderRequest.getEmployeeId();
+        Long departmentId = updateWarehouseTransferOrderRequest.getDepartmentId();
+        Long transferDepartmentId = updateWarehouseTransferOrderRequest.getTransferDepartmentId();
+        if (employeeId != null && employeeId > 0) {
+            IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+            if (employee == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, inventoryBillType + "经办人不存在");
+            }
+        }
+        if (departmentId != null && departmentId > 0) {
+            IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+            if (department == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, inventoryBillType + "调出部门不存在");
+            }
+        }
+        if (transferDepartmentId != null && transferDepartmentId > 0) {
+            IpmsDepartment transferDepartment = ipmsDepartmentService.getById(transferDepartmentId);
+            if (transferDepartment == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, inventoryBillType + "调入部门不存在");
+            }
+        }
+        IpmsInventoryBill newInventoryBill = new IpmsInventoryBill();
+        BeanUtils.copyProperties(updateWarehouseTransferOrderRequest, newInventoryBill);
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        newInventoryBill.setUpdateTime(new Date());
+        newInventoryBill.setModifier(loginUser.getUserName());
+        int result = ipmsInventoryBillMapper.updateById(newInventoryBill);
+        if (result != 1) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, inventoryBillType + "修改数据失败");
+        }
+        List<UpdateWarehouseTransferOrderProductNumRequest> updateWarehouseTransferOrderProductNumRequestList = updateWarehouseTransferOrderRequest.getUpdateWarehouseTransferOrderProductNumRequestList();
+        if (updateWarehouseTransferOrderProductNumRequestList != null && updateWarehouseTransferOrderProductNumRequestList.size() > 0) {
+            List<Long> updateAndInsertInventoryBillProductList = new ArrayList<>();
+            for (UpdateWarehouseTransferOrderProductNumRequest updateWarehouseTransferOrderProductNumRequest : updateWarehouseTransferOrderProductNumRequestList) {
+                Long inventoryBillProductId = updateWarehouseTransferOrderProductNumRequest.getInventoryBillProductId();
+                // 如果存在 inventoryBillProductId，那么肯定是要更新的数据，进行更新，并且存入列表中
+                if (inventoryBillProductId != null && inventoryBillProductId > 0) {
+                    updateAndInsertInventoryBillProductList.add(inventoryBillProductId);
+                    int updateResult = ipmsInventoryBillProductNumService.updateWarehouseTransferOrderProductAndNum(updateWarehouseTransferOrderProductNumRequest, oldInventoryBill);
+                    if (updateResult != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新移仓单商品失败");
+                    }
+                } else {
+                    // 否则，就是插入新的数据
+                    AddWarehouseTransferOrderProductNumRequest addWarehouseTransferOrderProductNumRequest = new AddWarehouseTransferOrderProductNumRequest();
+                    BeanUtils.copyProperties(updateWarehouseTransferOrderProductNumRequest, addWarehouseTransferOrderProductNumRequest);
+                    long insertInventoryBillProductId = ipmsInventoryBillProductNumService.addWarehouseTransferOrderProductAndNum(addWarehouseTransferOrderProductNumRequest, oldInventoryBill);
+                    if (insertInventoryBillProductId < 0) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "增加移仓单商品失败");
+                    }
+                    updateAndInsertInventoryBillProductList.add(insertInventoryBillProductId);
+                }
+            }
+            // 如果更新移仓单商品的 id 不在这个列表内，那么删除移仓单商品
             QueryWrapper<IpmsInventoryBillProductNum> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("inventory_bill_id", inventoryBillId);
             queryWrapper.notIn("inventory_bill_product_id", updateAndInsertInventoryBillProductList);
@@ -1030,6 +1210,158 @@ public class IpmsInventoryBillServiceImpl extends ServiceImpl<IpmsInventoryBillM
         Page<SafeOtherDeliveryOrderVO> safeOtherDeliveryOrderVOPage = new PageDTO<>(inventoryBillPage.getCurrent(), inventoryBillPage.getSize(), inventoryBillPage.getTotal());
         safeOtherDeliveryOrderVOPage.setRecords(safeOtherDeliveryOrderVOList);
         return safeOtherDeliveryOrderVOPage;
+    }
+
+    @Override
+    public Page<SafeWarehouseTransferOrderVO> pagingFuzzyQueryWarehouseTransferOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        if (fuzzyQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<IpmsInventoryBill> page = new Page<>(fuzzyQueryRequest.getCurrentPage(), fuzzyQueryRequest.getPageSize());
+        QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
+        String fuzzyText = fuzzyQueryRequest.getFuzzyText();
+        if (fuzzyText != null) {
+            ipmsInventoryBillQueryWrapper.like("inventory_bill_code", fuzzyText)
+                    .and(billType -> billType.eq("inventory_bill_type", InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER)).or()
+                    .like("inventory_bill_date", fuzzyText)
+                    .and(billType -> billType.eq("inventory_bill_type", InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER)).or()
+                    .like("inventory_bill_business_type", fuzzyText)
+                    .and(billType -> billType.eq("inventory_bill_type", InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER)).or()
+                    .like("inventory_bill_remark", fuzzyText)
+                    .and(billType -> billType.eq("inventory_bill_type", InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER));
+        } else {
+            ipmsInventoryBillQueryWrapper.eq("inventory_bill_type", InventoryBillConstant.WAREHOUSE_TRANSFER_ORDER);
+        }
+        Page<IpmsInventoryBill> inventoryBillPage = ipmsInventoryBillMapper.selectPage(page, ipmsInventoryBillQueryWrapper);
+        List<SafeWarehouseTransferOrderVO> safeWarehouseTransferOrderVOList = inventoryBillPage.getRecords().stream().map(ipmsInventoryBill -> {
+            SafeWarehouseTransferOrderVO safeWarehouseTransferOrderVO = new SafeWarehouseTransferOrderVO();
+            BeanUtils.copyProperties(ipmsInventoryBill, safeWarehouseTransferOrderVO);
+            // 查询职员信息，并设置到返回封装类中
+            Long employeeId = ipmsInventoryBill.getEmployeeId();
+            if (employeeId != null && employeeId > 0) {
+                IpmsEmployee employee = ipmsEmployeeService.getById(employeeId);
+                if (employee == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到经办人信息，系统业务错误");
+                }
+                safeWarehouseTransferOrderVO.setEmployeeId(employeeId);
+                safeWarehouseTransferOrderVO.setEmployeeName(employee.getEmployeeName());
+            }
+            // 查询部门信息，并设置到返回封装类中
+            Long departmentId = ipmsInventoryBill.getDepartmentId();
+            if (departmentId != null && departmentId > 0) {
+                IpmsDepartment department = ipmsDepartmentService.getById(departmentId);
+                if (department == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到调出部门信息，系统业务错误");
+                }
+                safeWarehouseTransferOrderVO.setDepartmentId(departmentId);
+                safeWarehouseTransferOrderVO.setDepartmentName(department.getDepartmentName());
+            }
+            Long transferDepartmentId = ipmsInventoryBill.getTransferDepartmentId();
+            if (transferDepartmentId != null && transferDepartmentId > 0) {
+                IpmsDepartment transferDepartment = ipmsDepartmentService.getById(transferDepartmentId);
+                if (transferDepartment == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到调入部门信息，系统业务错误");
+                }
+                safeWarehouseTransferOrderVO.setTransferDepartmentId(transferDepartmentId);
+                safeWarehouseTransferOrderVO.setTransferDepartmentName(transferDepartment.getDepartmentName());
+            }
+            // 查询其他入库单的商品信息，并设置到返回封装类中
+            Long inventoryBillId = ipmsInventoryBill.getInventoryBillId();
+            if (inventoryBillId != null && inventoryBillId > 0) {
+                QueryWrapper<IpmsInventoryBillProductNum> inventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+                inventoryBillProductNumQueryWrapper.eq("inventory_bill_id", inventoryBillId);
+                List<IpmsInventoryBillProductNum> inventoryBillProductList = ipmsInventoryBillProductNumService.list(inventoryBillProductNumQueryWrapper);
+                List<SafeWarehouseTransferOrderProductNumVO> safeWarehouseTransferOrderProductVOList = new ArrayList<>();
+                if (inventoryBillProductList != null && inventoryBillProductList.size() > 0) {
+                    for (IpmsInventoryBillProductNum inventoryBillProduct : inventoryBillProductList) {
+                        SafeWarehouseTransferOrderProductNumVO safeInventoryBillProductVO = new SafeWarehouseTransferOrderProductNumVO();
+                        BeanUtils.copyProperties(inventoryBillProduct, safeInventoryBillProductVO);
+                        // 在销售商品中查询商品等信息，并设置到返回封装类中
+                        QueryWrapper<IpmsProductInventory> transferOutProductInventoryQueryWrapper = new QueryWrapper<>();
+                        QueryWrapper<IpmsProductInventory> transferIntoProductInventoryQueryWrapper = new QueryWrapper<>();
+                        Long productId = inventoryBillProduct.getProductId();
+                        if (productId != null && productId > 0) {
+                            IpmsProduct product = ipmsProductService.getById(productId);
+                            if (product == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到商品，系统业务逻辑错误");
+                            }
+                            Long unitId = product.getUnitId();
+                            if (unitId == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位 id 为空，系统业务逻辑错误");
+                            }
+                            IpmsUnit productUnit = ipmsUnitService.getById(unitId);
+                            if (productUnit == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品单位为空，系统业务逻辑错误");
+                            }
+                            SafeProductVO safeProductVO = new SafeProductVO();
+                            BeanUtils.copyProperties(product, safeProductVO);
+                            safeProductVO.setUnitName(productUnit.getUnitName());
+                            safeInventoryBillProductVO.setSafeProductVO(safeProductVO);
+                            transferOutProductInventoryQueryWrapper.eq("product_id", productId);
+                            transferIntoProductInventoryQueryWrapper.eq("product_id", productId);
+                        }
+                        Long warehouseId = inventoryBillProduct.getWarehouseId();
+                        if (warehouseId != null && warehouseId > 0) {
+                            IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+                            if (warehouse == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到调出仓库，系统业务逻辑错误");
+                            }
+                            safeInventoryBillProductVO.setWarehouseId(warehouseId);
+                            safeInventoryBillProductVO.setWarehouseName(warehouse.getWarehouseName());
+                            transferOutProductInventoryQueryWrapper.eq("warehouse_id", warehouseId);
+                        }
+                        Long transferWarehouseId = inventoryBillProduct.getTransferWarehouseId();
+                        if (transferWarehouseId != null && transferWarehouseId > 0) {
+                            IpmsWarehouse transferWarehouse = ipmsWarehouseService.getById(transferWarehouseId);
+                            if (transferWarehouse == null) {
+                                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到调入仓库，系统业务逻辑错误");
+                            }
+                            safeInventoryBillProductVO.setTransferWarehouseId(transferWarehouseId);
+                            safeInventoryBillProductVO.setTransferWarehouseName(transferWarehouse.getWarehouseName());
+                            transferIntoProductInventoryQueryWrapper.eq("warehouse_id", transferWarehouseId);
+                        }
+                        Long warehousePositionId = inventoryBillProduct.getWarehousePositionId();
+                        if (warehousePositionId != null && warehousePositionId > 0) {
+                            IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                            if (warehousePosition != null) {
+                                safeInventoryBillProductVO.setWarehousePositionId(warehousePositionId);
+                                safeInventoryBillProductVO.setWarehousePositionName(warehousePosition.getWarehousePositionName());
+                                transferOutProductInventoryQueryWrapper.eq("warehouse_position_id", warehousePositionId);
+                            }
+                        }
+                        Long transferWarehousePositionId = inventoryBillProduct.getTransferWarehousePositionId();
+                        if (transferWarehousePositionId != null && transferWarehousePositionId > 0) {
+                            IpmsWarehousePosition transferWarehousePosition = ipmsWarehousePositionService.getById(transferWarehousePositionId);
+                            if (transferWarehousePosition != null) {
+                                safeInventoryBillProductVO.setTransferWarehousePositionId(transferWarehousePositionId);
+                                safeInventoryBillProductVO.setTransferWarehousePositionName(transferWarehousePosition.getWarehousePositionName());
+                                transferIntoProductInventoryQueryWrapper.eq("warehouse_position_id", transferWarehousePositionId);
+                            }
+                        }
+                        // 查询库存
+                        IpmsProductInventory transferOutProductInventory = ipmsProductInventoryService.getOne(transferOutProductInventoryQueryWrapper);
+                        IpmsProductInventory transferIntoProductInventory = ipmsProductInventoryService.getOne(transferIntoProductInventoryQueryWrapper);
+                        if (transferOutProductInventory != null) {
+                            safeInventoryBillProductVO.setTransferOutAvailableInventory(transferOutProductInventory.getProductInventorySurplusNum());
+                        }
+                        if (transferIntoProductInventory != null) {
+                            safeInventoryBillProductVO.setTransferIntoAvailableInventory(transferIntoProductInventory.getProductInventorySurplusNum());
+                        }
+                        safeWarehouseTransferOrderProductVOList.add(safeInventoryBillProductVO);
+                    }
+                }
+                safeWarehouseTransferOrderVO.setSafeWarehouseTransferOrderProductNumVOList(safeWarehouseTransferOrderProductVOList);
+            }
+            // 单据时间格式化
+            safeWarehouseTransferOrderVO.setCreateTime(TimeFormatUtil.dateFormatting(ipmsInventoryBill.getCreateTime()));
+            safeWarehouseTransferOrderVO.setUpdateTime(TimeFormatUtil.dateFormatting(ipmsInventoryBill.getUpdateTime()));
+            safeWarehouseTransferOrderVO.setCheckTime(TimeFormatUtil.dateFormatting(ipmsInventoryBill.getCheckTime()));
+            return safeWarehouseTransferOrderVO;
+        }).collect(Collectors.toList());
+        // 关键步骤
+        Page<SafeWarehouseTransferOrderVO> safeWarehouseTransferOrderVOPage = new PageDTO<>(inventoryBillPage.getCurrent(), inventoryBillPage.getSize(), inventoryBillPage.getTotal());
+        safeWarehouseTransferOrderVOPage.setRecords(safeWarehouseTransferOrderVOList);
+        return safeWarehouseTransferOrderVOPage;
     }
 
     /**

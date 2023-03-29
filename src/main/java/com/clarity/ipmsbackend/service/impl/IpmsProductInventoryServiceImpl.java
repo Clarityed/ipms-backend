@@ -2,6 +2,7 @@ package com.clarity.ipmsbackend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.clarity.ipmsbackend.common.Constant;
 import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.constant.WarehouseConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
@@ -139,7 +140,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         if (newProductInventorySurplusNum.doubleValue() < 0) {
             IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
             Integer isNegativeInventory = warehouse.getIsNegativeInventory();
-            if (WarehouseConstant.CLOSE_WAREHOUSE_POSITION_MANAGEMENT == isNegativeInventory) {
+            if (WarehouseConstant.CLOSE_NEGATIVE_INVENTORY == isNegativeInventory) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在商品数量库存不足，请求修改商品数量，或者开启仓位支持负库存模式");
             }
         }
@@ -254,7 +255,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         if (newProductInventorySurplusNum.doubleValue() < 0) {
             IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
             Integer isNegativeInventory = warehouse.getIsNegativeInventory();
-            if (WarehouseConstant.CLOSE_WAREHOUSE_POSITION_MANAGEMENT == isNegativeInventory) {
+            if (WarehouseConstant.OPEN_NEGATIVE_INVENTORY == isNegativeInventory) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在商品数量库存不足，请求修改商品数量，或者开启仓位支持负库存模式");
             }
         }
@@ -382,7 +383,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         if (newProductInventorySurplusNum.doubleValue() < 0) {
             IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
             Integer isNegativeInventory = warehouse.getIsNegativeInventory();
-            if (WarehouseConstant.CLOSE_WAREHOUSE_POSITION_MANAGEMENT == isNegativeInventory) {
+            if (WarehouseConstant.CLOSE_NEGATIVE_INVENTORY == isNegativeInventory) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在商品数量库存不足，请求修改商品数量，或者开启仓位支持负库存模式");
             }
         }
@@ -498,7 +499,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         if (newProductInventorySurplusNum.doubleValue() < 0) {
             IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
             Integer isNegativeInventory = warehouse.getIsNegativeInventory();
-            if (WarehouseConstant.CLOSE_WAREHOUSE_POSITION_MANAGEMENT == isNegativeInventory) {
+            if (WarehouseConstant.CLOSE_NEGATIVE_INVENTORY == isNegativeInventory) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "存在商品数量库存不足，请求修改商品数量，或者开启仓位支持负库存模式");
             }
         }
@@ -515,6 +516,250 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
         }
         return result;
+    }
+
+    @Override
+    public int addProductInventoryByTransfer(IpmsInventoryBillProductNum inventoryBillProductNum, String checkType) {
+        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+        Long transferWarehouseId = inventoryBillProductNum.getTransferWarehouseId(); // 调入仓库 id
+        Long transferWarehousePositionId = inventoryBillProductNum.getTransferWarehousePositionId(); // 调入仓位 id
+        Long productId = inventoryBillProductNum.getProductId(); // 调人商品 id
+        BigDecimal needExecutionProductNum = inventoryBillProductNum.getNeedExecutionProductNum(); // 商品数量
+        productInventoryQueryWrapper.eq("product_id", productId);
+        productInventoryQueryWrapper.eq("warehouse_id", transferWarehouseId);
+        if (transferWarehousePositionId != null && transferWarehousePositionId > 0) {
+            productInventoryQueryWrapper.eq("warehouse_position_id", transferWarehousePositionId);
+        }
+        IpmsWarehouse warehouse = ipmsWarehouseService.getById(transferWarehouseId);
+        Integer isNegativeInventory = warehouse.getIsNegativeInventory();
+        IpmsProductInventory oldProductInventory = ipmsProductInventoryMapper.selectOne(productInventoryQueryWrapper);
+        IpmsProductInventory productInventory;
+        if (Constant.CHECK_OPERATION.equals(checkType)) {
+            productInventory = new IpmsProductInventory();
+            if (oldProductInventory != null) {
+                BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost(); // 原来库存商品成本
+                BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum(); // 原来库存商品数量
+                BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.add(needExecutionProductNum); // 新的商品库存数量
+                BigDecimal newProductInventoryUnitCost = oldProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP);
+                productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                productInventory.setProductInventoryUnitCost(newProductInventoryUnitCost);
+                productInventory.setProductUnitCost(newProductInventoryUnitCost);
+                int result = ipmsProductInventoryMapper.updateById(productInventory);
+                if (result != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
+                }
+                return result;
+            } else {
+                productInventory.setWarehouseId(transferWarehouseId);
+                if (transferWarehousePositionId != null && transferWarehousePositionId > 0) {
+                    productInventory.setWarehousePositionId(transferWarehousePositionId);
+                }
+                productInventory.setProductId(productId);
+                productInventory.setProductInventorySurplusNum(needExecutionProductNum);
+                productInventory.setProductInventoryCost(BigDecimal.ZERO);
+                productInventory.setProductUnitCost(BigDecimal.ZERO);
+                productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+                productInventory.setCreateTime(new Date());
+                productInventory.setUpdateTime(new Date());
+                int result = ipmsProductInventoryMapper.insert(productInventory);
+                if (result != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存插入失败");
+                }
+                return result;
+            }
+        } else if (Constant.UNCHECKED_OPERATION.equals(checkType)) {
+            if (isNegativeInventory == WarehouseConstant.CLOSE_NEGATIVE_INVENTORY) {
+                // 关闭负库存转移商品方式
+                if (oldProductInventory == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "扣减的商品不存在，并且由于该仓库没有开启负库存，所以无法扣减商品");
+                }
+                // 移仓单：调用商品时库存成本不受到影响，只有数量和单价会被影响改变。
+                productInventory = new IpmsProductInventory();
+                BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost(); // 原来库存商品成本
+                BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum(); // 原来库存商品数量
+                BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.subtract(needExecutionProductNum); // 新的商品库存数量
+                if (newProductInventorySurplusNum.doubleValue() == 0) {
+                    productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                    productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                    productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+                    productInventory.setProductUnitCost(BigDecimal.ZERO);
+                } else {
+                    BigDecimal newProductInventoryUnitCost = oldProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP);
+                    productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                    productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                    productInventory.setProductInventoryUnitCost(newProductInventoryUnitCost);
+                    productInventory.setProductUnitCost(newProductInventoryUnitCost);
+                }
+                if (newProductInventorySurplusNum.doubleValue() < 0) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "库存未开启负库存管理功能，无法继续扣减库存");
+                }
+                int result = ipmsProductInventoryMapper.updateById(productInventory);
+                if (result != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
+                }
+                return result;
+            } else {
+                // 开启负库存转移商品方式
+                productInventory = new IpmsProductInventory();
+                if (oldProductInventory != null) {
+                    // 移仓单：调用商品时库存成本不受到影响，只有数量和单价会被影响改变。
+                    BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost(); // 原来库存商品成本
+                    BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum(); // 原来库存商品数量
+                    BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.subtract(needExecutionProductNum); // 新的商品库存数量
+                    BigDecimal newProductInventoryUnitCost = oldProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP);
+                    productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                    productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                    productInventory.setProductInventoryUnitCost(newProductInventoryUnitCost);
+                    productInventory.setProductUnitCost(newProductInventoryUnitCost);
+                    int result = ipmsProductInventoryMapper.updateById(productInventory);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
+                    }
+                    return result;
+                } else {
+                    productInventory.setWarehouseId(transferWarehouseId);
+                    if (transferWarehousePositionId != null && transferWarehousePositionId > 0) {
+                        productInventory.setWarehousePositionId(transferWarehousePositionId);
+                    }
+                    productInventory.setProductId(productId);
+                    productInventory.setProductInventorySurplusNum(needExecutionProductNum);
+                    productInventory.setProductInventoryCost(BigDecimal.ZERO);
+                    productInventory.setProductUnitCost(BigDecimal.ZERO);
+                    productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+                    productInventory.setCreateTime(new Date());
+                    productInventory.setUpdateTime(new Date());
+                    int result = ipmsProductInventoryMapper.insert(productInventory);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存插入失败");
+                    }
+                    return result;
+                }
+            }
+        }
+        return 1;
+    }
+
+    @Override
+    public int reduceProductInventoryByTransfer(IpmsInventoryBillProductNum inventoryBillProductNum, String checkType) {
+        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+        Long warehouseId = inventoryBillProductNum.getWarehouseId(); // 调出仓库 id
+        Long warehousePositionId = inventoryBillProductNum.getWarehousePositionId(); // 调出仓位 id
+        Long productId = inventoryBillProductNum.getProductId(); // 调出商品 id
+        BigDecimal needExecutionProductNum = inventoryBillProductNum.getNeedExecutionProductNum(); // 商品数量
+        productInventoryQueryWrapper.eq("product_id", productId);
+        productInventoryQueryWrapper.eq("warehouse_id", warehouseId);
+        if (warehousePositionId != null && warehousePositionId > 0) {
+            productInventoryQueryWrapper.eq("warehouse_position_id", warehousePositionId);
+        }
+        IpmsWarehouse warehouse = ipmsWarehouseService.getById(warehouseId);
+        Integer isNegativeInventory = warehouse.getIsNegativeInventory();
+        IpmsProductInventory oldProductInventory = ipmsProductInventoryMapper.selectOne(productInventoryQueryWrapper);
+        IpmsProductInventory productInventory;
+        if (Constant.CHECK_OPERATION.equals(checkType)) {
+            if (isNegativeInventory == WarehouseConstant.CLOSE_NEGATIVE_INVENTORY) {
+                // 关闭负库存转移商品方式
+                if (oldProductInventory == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "扣减的商品不存在，并且由于该仓库没有开启负库存，所以无法扣减商品");
+                }
+                // 移仓单：调用商品时库存成本不受到影响，只有数量和单价会被影响改变。
+                productInventory = new IpmsProductInventory();
+                BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost(); // 原来库存商品成本
+                BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum(); // 原来库存商品数量
+                BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.subtract(needExecutionProductNum); // 新的商品库存数量
+                if (newProductInventorySurplusNum.doubleValue() == 0) {
+                    productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                    productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                    productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+                    productInventory.setProductUnitCost(BigDecimal.ZERO);
+                } else {
+                    BigDecimal newProductInventoryUnitCost = oldProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP);
+                    productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                    productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                    productInventory.setProductInventoryUnitCost(newProductInventoryUnitCost);
+                    productInventory.setProductUnitCost(newProductInventoryUnitCost);
+                }
+                if (newProductInventorySurplusNum.doubleValue() < 0) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "库存未开启负库存管理功能，无法继续扣减库存");
+                }
+                int result = ipmsProductInventoryMapper.updateById(productInventory);
+                if (result != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
+                }
+                return result;
+            } else {
+                // 开启负库存转移商品方式
+                productInventory = new IpmsProductInventory();
+                if (oldProductInventory != null) {
+                    // 移仓单：调用商品时库存成本不受到影响，只有数量和单价会被影响改变。
+                    BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost(); // 原来库存商品成本
+                    BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum(); // 原来库存商品数量
+                    BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.subtract(needExecutionProductNum); // 新的商品库存数量
+                    BigDecimal newProductInventoryUnitCost = oldProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP);
+                    productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                    productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                    productInventory.setProductInventoryUnitCost(newProductInventoryUnitCost);
+                    productInventory.setProductUnitCost(newProductInventoryUnitCost);
+                    int result = ipmsProductInventoryMapper.updateById(productInventory);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
+                    }
+                    return result;
+                } else {
+                    productInventory.setWarehouseId(warehouseId);
+                    if (warehousePositionId != null && warehousePositionId > 0) {
+                        productInventory.setWarehousePositionId(warehousePositionId);
+                    }
+                    productInventory.setProductId(productId);
+                    productInventory.setProductInventorySurplusNum(needExecutionProductNum);
+                    productInventory.setProductInventoryCost(BigDecimal.ZERO);
+                    productInventory.setProductUnitCost(BigDecimal.ZERO);
+                    productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+                    productInventory.setCreateTime(new Date());
+                    productInventory.setUpdateTime(new Date());
+                    int result = ipmsProductInventoryMapper.insert(productInventory);
+                    if (result != 1) {
+                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存插入失败");
+                    }
+                    return result;
+                }
+            }
+        } else if (Constant.UNCHECKED_OPERATION.equals(checkType)) {
+            productInventory = new IpmsProductInventory();
+            if (oldProductInventory != null) {
+                BigDecimal oldProductInventoryCost = oldProductInventory.getProductInventoryCost(); // 原来库存商品成本
+                BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum(); // 原来库存商品数量
+                BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.add(needExecutionProductNum); // 新的商品库存数量
+                BigDecimal newProductInventoryUnitCost = oldProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP);
+                productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
+                productInventory.setProductInventorySurplusNum(newProductInventorySurplusNum);
+                productInventory.setProductInventoryUnitCost(newProductInventoryUnitCost);
+                productInventory.setProductUnitCost(newProductInventoryUnitCost);
+                int result = ipmsProductInventoryMapper.updateById(productInventory);
+                if (result != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "减少库存数量失败");
+                }
+                return result;
+            } else {
+                productInventory.setWarehouseId(warehouseId);
+                if (warehousePositionId != null && warehousePositionId > 0) {
+                    productInventory.setWarehousePositionId(warehousePositionId);
+                }
+                productInventory.setProductId(productId);
+                productInventory.setProductInventorySurplusNum(needExecutionProductNum);
+                productInventory.setProductInventoryCost(BigDecimal.ZERO);
+                productInventory.setProductUnitCost(BigDecimal.ZERO);
+                productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+                productInventory.setCreateTime(new Date());
+                productInventory.setUpdateTime(new Date());
+                int result = ipmsProductInventoryMapper.insert(productInventory);
+                if (result != 1) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存插入失败");
+                }
+                return result;
+            }
+        }
+        return 1;
     }
 
     @Override

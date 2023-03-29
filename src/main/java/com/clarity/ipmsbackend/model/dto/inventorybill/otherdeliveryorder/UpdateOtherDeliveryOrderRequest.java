@@ -50,9 +50,9 @@ public class UpdateOtherDeliveryOrderRequest implements Serializable {
     private Long customerLinkmanId;
 
     /**
-     * 职员 id（其他入库单和其他出库单中称为业务员）
+     * 职员 id（其他出库单和其他出库单中称为业务员）
      */
-    @ApiModelProperty("职员 id（其他入库单和其他出库单中称为业务员）")
+    @ApiModelProperty("职员 id（其他出库单和其他出库单中称为业务员）")
     private Long employeeId;
 
     /**
@@ -62,9 +62,9 @@ public class UpdateOtherDeliveryOrderRequest implements Serializable {
     private Long departmentId;
 
     /**
-     * 库存单据业务类型（在其他入库单中是其他入库）
+     * 库存单据业务类型（在其他出库单中是其他出库）
      */
-    @ApiModelProperty("库存单据业务类型（在其他出库单中是其他入库）")
+    @ApiModelProperty("库存单据业务类型（在其他出库单中是其他出库）")
     private String inventoryBillBusinessType;
 
     /**
@@ -74,9 +74,9 @@ public class UpdateOtherDeliveryOrderRequest implements Serializable {
     private String inventoryBillRemark;
 
     /**
-     * 更新其他入库单商品请求列表
+     * 更新其他出库单商品请求列表
      */
-    @ApiModelProperty("更新其他入库单商品请求列表")
+    @ApiModelProperty("更新其他出库单商品请求列表")
     private List<UpdateOtherDeliveryOrderProductNumRequest> updateOtherDeliveryOrderProductNumRequestList;
 
     private static final long serialVersionUID = 1L;

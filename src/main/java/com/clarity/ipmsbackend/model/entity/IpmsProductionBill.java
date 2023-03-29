@@ -78,6 +78,7 @@ public class IpmsProductionBill implements Serializable {
     /**
      * 仓位 id（如果仓库有仓位，不能为空，满足条件的生产任务单填写，其他类型的单据都不用）
      */
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private Long warehousePositionId;
 
     /**

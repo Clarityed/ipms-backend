@@ -12,9 +12,11 @@ import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.AddOth
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.UpdateOtherDeliveryOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.AddOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.UpdateOtherReceiptOrderRequest;
-import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.AddWarehouseTransferOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.UpdateWarehouseTransferOrderRequest;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherdeliveryorder.SafeOtherDeliveryOrderVO;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherreceiptorder.SafeOtherReceiptOrderVO;
+import com.clarity.ipmsbackend.model.vo.inventorybill.warehousetransferorder.SafeWarehouseTransferOrderVO;
 import com.clarity.ipmsbackend.service.IpmsInventoryBillService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -89,6 +91,24 @@ public class IpmsInventoryBillController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         int result = ipmsInventoryBillService.addOtherDeliveryOrder(addOtherDeliveryOrderRequest, request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 增加移仓单（仓管员、仓管主管）
+     *
+     * @param addWarehouseTransferOrderRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/addWarehouseTransferOrder")
+    @ApiOperation("增加移仓单（仓管员、仓管主管）")
+    @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
+    public BaseResponse<Integer> addWarehouseTransferOrder(@RequestBody AddWarehouseTransferOrderRequest addWarehouseTransferOrderRequest, HttpServletRequest request) {
+        if (addWarehouseTransferOrderRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int result = ipmsInventoryBillService.addWarehouseTransferOrder(addWarehouseTransferOrderRequest, request);
         return ResultUtils.success(result);
     }
 
@@ -182,6 +202,24 @@ public class IpmsInventoryBillController {
     }
 
     /**
+     * 修改移仓单（仓管员、仓管主管）
+     *
+     * @param updateWarehouseTransferOrderRequest
+     * @param request
+     * @return
+     */
+    @PutMapping("/updateWarehouseTransferOrder")
+    @ApiOperation("修改移仓单（仓管员、仓管主管）")
+    @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
+    public BaseResponse<Integer> updateWarehouseTransferOrder(@RequestBody UpdateWarehouseTransferOrderRequest updateWarehouseTransferOrderRequest, HttpServletRequest request) {
+        if (updateWarehouseTransferOrderRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int result = ipmsInventoryBillService.updateWarehouseTransferOrder(updateWarehouseTransferOrderRequest, request);
+        return ResultUtils.success(result);
+    }
+
+    /**
      * 分页查询其他入库单，且数据脱敏，且支持模糊查询（仓管员、仓管主管）
      *
      * @param fuzzyQueryRequest
@@ -215,5 +253,23 @@ public class IpmsInventoryBillController {
         }
         Page<SafeOtherDeliveryOrderVO> safeOtherDeliveryOrderVOPage = ipmsInventoryBillService.pagingFuzzyQueryOtherDeliveryOrder(fuzzyQueryRequest, request);
         return ResultUtils.success(safeOtherDeliveryOrderVOPage);
+    }
+
+    /**
+     * 分页查询移仓单，且数据脱敏，且支持模糊查询（仓管员、仓管主管）
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    @GetMapping("/pagingFuzzyQueryWarehouseTransferOrder")
+    @ApiOperation(value = "分页查询移仓单 ，且模糊查询（仓管员、仓管主管）")
+    @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
+    public BaseResponse<Page<SafeWarehouseTransferOrderVO>> pagingFuzzyQueryWarehouseTransferOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        if (fuzzyQueryRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeWarehouseTransferOrderVO> safeWarehouseTransferOrderVOPage = ipmsInventoryBillService.pagingFuzzyQueryWarehouseTransferOrder(fuzzyQueryRequest, request);
+        return ResultUtils.success(safeWarehouseTransferOrderVOPage);
     }
 }

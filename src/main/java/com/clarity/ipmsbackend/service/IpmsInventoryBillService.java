@@ -7,9 +7,12 @@ import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.AddOth
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.UpdateOtherDeliveryOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.AddOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.UpdateOtherReceiptOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.AddWarehouseTransferOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.warehousetransferorder.UpdateWarehouseTransferOrderRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsInventoryBill;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherdeliveryorder.SafeOtherDeliveryOrderVO;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherreceiptorder.SafeOtherReceiptOrderVO;
+import com.clarity.ipmsbackend.model.vo.inventorybill.warehousetransferorder.SafeWarehouseTransferOrderVO;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -45,6 +48,15 @@ public interface IpmsInventoryBillService extends IService<IpmsInventoryBill> {
      * @return 1 - 成功， 0 - 失败
      */
     int addOtherDeliveryOrder(AddOtherDeliveryOrderRequest addOtherDeliveryOrderRequest, HttpServletRequest request);
+
+    /**
+     * 增加移仓单
+     *
+     * @param addWarehouseTransferOrderRequest 增加移仓单请求封装对象
+     * @param request HttpServletRequest
+     * @return 1 - 成功， 0 - 失败
+     */
+    int addWarehouseTransferOrder(AddWarehouseTransferOrderRequest addWarehouseTransferOrderRequest, HttpServletRequest request);
 
     /**
      * 审核库存单据
@@ -89,6 +101,15 @@ public interface IpmsInventoryBillService extends IService<IpmsInventoryBill> {
     int updateOtherDeliveryOrder(UpdateOtherDeliveryOrderRequest updateOtherDeliveryOrderRequest, HttpServletRequest request);
 
     /**
+     * 修改移仓单
+     *
+     * @param updateWarehouseTransferOrderRequest 修改移仓单请求封装对象
+     * @param request HttpServletRequest
+     * @return 1 - 成功， 0 - 失败
+     */
+    int updateWarehouseTransferOrder(UpdateWarehouseTransferOrderRequest updateWarehouseTransferOrderRequest, HttpServletRequest request);
+
+    /**
      * 分页查询其他入库单，且数据脱敏，且支持模糊查询
      *
      * @param fuzzyQueryRequest
@@ -105,4 +126,13 @@ public interface IpmsInventoryBillService extends IService<IpmsInventoryBill> {
      * @return
      */
     Page<SafeOtherDeliveryOrderVO> pagingFuzzyQueryOtherDeliveryOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
+
+    /**
+     * 分页查询移仓单，且数据脱敏，且支持模糊查询
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    Page<SafeWarehouseTransferOrderVO> pagingFuzzyQueryWarehouseTransferOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
 }

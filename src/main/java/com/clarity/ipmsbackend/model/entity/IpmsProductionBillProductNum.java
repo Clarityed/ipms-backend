@@ -38,6 +38,7 @@ public class IpmsProductionBillProductNum implements Serializable {
     /**
      * 仓位 id
      */
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private Long warehousePositionId;
 
     /**

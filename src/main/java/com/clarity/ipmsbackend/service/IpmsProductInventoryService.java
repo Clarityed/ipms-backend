@@ -83,6 +83,24 @@ public interface IpmsProductInventoryService extends IService<IpmsProductInvento
     int reduceProductInventory(IpmsInventoryBillProductNum inventoryBillProductNum);
 
     /**
+     * 库存单据增加商品库存（仓库之间转移库存）
+     *
+     * @param inventoryBillProductNum 库存单据商品及商品数量
+     * @param checkType 审核类型
+     * @return 1 - 成功， 0 - 失败
+     */
+    int addProductInventoryByTransfer(IpmsInventoryBillProductNum inventoryBillProductNum, String checkType);
+
+    /**
+     * 库存单据减少商品库存（仓库之间转移库存）
+     *
+     * @param inventoryBillProductNum 库存单据商品及商品数量
+     * @param checkType 审核类型
+     * @return 1 - 成功， 0 - 失败
+     */
+    int reduceProductInventoryByTransfer(IpmsInventoryBillProductNum inventoryBillProductNum, String checkType);
+
+    /**
      * 提供一个方法对仓库的记录进行删除，但是只允许删除剩余库存数为 0 的库存记录，为负库存，代表使用超过了当前库存，应该采购
      * 而使用还未到零的说明还有库存不能直接删除，否则会导致数据和现实的仓库存储不一致。
      * 根据 id 删除，目前系统用不到，如果需求改变有需要的提供该方法的接口。

@@ -38,6 +38,7 @@ public class IpmsInventoryBillProductNum implements Serializable {
     /**
      * 仓位 id（在移仓单、调拨入库单和调拨出库单中称为商品调出仓位 id）
      */
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private Long warehousePositionId;
 
     /**
@@ -48,6 +49,7 @@ public class IpmsInventoryBillProductNum implements Serializable {
     /**
      * 调入仓位 id（只在移仓单、调拨入库单和调拨出库单中有该字段）
      */
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private Long transferWarehousePositionId;
 
     /**
