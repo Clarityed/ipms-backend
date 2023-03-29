@@ -131,7 +131,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         BigDecimal newProductInventoryCost = oldProductInventoryCost.subtract(currentPurchaseProductCost);
         productInventory.setProductInventoryCost(newProductInventoryCost);
         // 不会为 0 的商品平均单位成本
-        productInventory.setProductUnitCost(newProductInventoryCost);
+
         // 目前的库存商品数量减少
         BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum();
         BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.subtract(needWarehousingProductNum);
@@ -146,8 +146,10 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         // 目前的库存商品单位成本改变
         if (newProductInventorySurplusNum.doubleValue() == 0) {
             productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+            productInventory.setProductUnitCost(BigDecimal.ZERO);
         } else {
             productInventory.setProductInventoryUnitCost(newProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP));
+            productInventory.setProductUnitCost(newProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP));
         }
         productInventory.setUpdateTime(new Date());
         productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());
@@ -211,6 +213,7 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
             productInventory.setProductInventoryCost(cost);
             productInventory.setCreateTime(new Date());
             productInventory.setUpdateTime(new Date());
+            productInventory.setProductUnitCost(cost);
             int result = ipmsProductInventoryMapper.insert(productInventory);
             if (result != 1) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存插入失败");
@@ -244,8 +247,6 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         // BigDecimal newProductInventoryCost = oldProductInventoryCost.subtract(currentSaleProductCost.multiply(saleBillExchangeRate));
         BigDecimal newProductInventoryCost = oldProductInventoryCost.subtract(currentSaleProductCost);
         productInventory.setProductInventoryCost(newProductInventoryCost);
-        // 不会为 0 的商品平均单位成本
-        productInventory.setProductUnitCost(newProductInventoryCost);
         // 目前的库存商品数量减少
         BigDecimal oldProductInventorySurplusNum = oldProductInventory.getProductInventorySurplusNum();
         BigDecimal newProductInventorySurplusNum = oldProductInventorySurplusNum.subtract(needDeliveryProductNum);
@@ -260,8 +261,10 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
         // 目前的库存商品单位成本改变
         if (newProductInventorySurplusNum.doubleValue() == 0) {
             productInventory.setProductInventoryUnitCost(BigDecimal.ZERO);
+            productInventory.setProductUnitCost(BigDecimal.ZERO);
         } else {
             productInventory.setProductInventoryUnitCost(newProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP));
+            productInventory.setProductUnitCost(newProductInventoryCost.divide(newProductInventorySurplusNum, 2, RoundingMode.HALF_UP));
         }
         productInventory.setUpdateTime(new Date());
         productInventory.setProductInventoryId(oldProductInventory.getProductInventoryId());

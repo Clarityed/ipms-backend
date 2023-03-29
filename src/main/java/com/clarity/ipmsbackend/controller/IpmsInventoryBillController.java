@@ -8,9 +8,12 @@ import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.common.ResultUtils;
 import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
+import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.AddOtherDeliveryOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.UpdateOtherDeliveryOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.AddOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.UpdateOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.inventorybill.otherdeliveryorder.SafeOtherDeliveryOrderVO;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherreceiptorder.SafeOtherReceiptOrderVO;
 import com.clarity.ipmsbackend.service.IpmsInventoryBillService;
 import io.swagger.annotations.Api;
@@ -68,6 +71,24 @@ public class IpmsInventoryBillController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         int result = ipmsInventoryBillService.addOtherReceiptOrder(addOtherReceiptOrderRequest, request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 增加其他出库单（仓管员、仓管主管）
+     *
+     * @param addOtherDeliveryOrderRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/addOtherDeliveryOrderBill")
+    @ApiOperation("增加其他出库单（仓管员、仓管主管）")
+    @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
+    public BaseResponse<Integer> addOtherDeliveryOrderBill(@RequestBody AddOtherDeliveryOrderRequest addOtherDeliveryOrderRequest, HttpServletRequest request) {
+        if (addOtherDeliveryOrderRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int result = ipmsInventoryBillService.addOtherDeliveryOrder(addOtherDeliveryOrderRequest, request);
         return ResultUtils.success(result);
     }
 
@@ -131,7 +152,7 @@ public class IpmsInventoryBillController {
      * @param request
      * @return
      */
-    @PutMapping("/updateInventoryBill")
+    @PutMapping("/updateOtherReceiptOrder")
     @ApiOperation("修改其他入库单（仓管员、仓管主管）")
     @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
     public BaseResponse<Integer> updateOtherReceiptOrder(@RequestBody UpdateOtherReceiptOrderRequest updateOtherReceiptOrderRequest, HttpServletRequest request) {
@@ -139,6 +160,24 @@ public class IpmsInventoryBillController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         int result = ipmsInventoryBillService.updateOtherReceiptOrder(updateOtherReceiptOrderRequest, request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 修改其他出库单（仓管员、仓管主管）
+     *
+     * @param updateOtherDeliveryOrderRequest
+     * @param request
+     * @return
+     */
+    @PutMapping("/updateOtherDeliveryOrder")
+    @ApiOperation("修改其他出库单（仓管员、仓管主管）")
+    @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
+    public BaseResponse<Integer> updateOtherDeliveryOrder(@RequestBody UpdateOtherDeliveryOrderRequest updateOtherDeliveryOrderRequest, HttpServletRequest request) {
+        if (updateOtherDeliveryOrderRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int result = ipmsInventoryBillService.updateOtherDeliveryOrder(updateOtherDeliveryOrderRequest, request);
         return ResultUtils.success(result);
     }
 
@@ -158,5 +197,23 @@ public class IpmsInventoryBillController {
         }
         Page<SafeOtherReceiptOrderVO> safeOtherReceiptOrderVOPage = ipmsInventoryBillService.pagingFuzzyQueryOtherReceiptOrder(fuzzyQueryRequest, request);
         return ResultUtils.success(safeOtherReceiptOrderVOPage);
+    }
+
+    /**
+     * 分页查询其他出库单，且数据脱敏，且支持模糊查询（仓管员、仓管主管）
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    @GetMapping("/pagingFuzzyQueryOtherDeliveryOrder")
+    @ApiOperation(value = "分页其他出库单 ，且模糊查询（仓管员、仓管主管）")
+    @AuthCheck(anyRole = {UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
+    public BaseResponse<Page<SafeOtherDeliveryOrderVO>> pagingFuzzyQueryOtherDeliveryOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        if (fuzzyQueryRequest == null || request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Page<SafeOtherDeliveryOrderVO> safeOtherDeliveryOrderVOPage = ipmsInventoryBillService.pagingFuzzyQueryOtherDeliveryOrder(fuzzyQueryRequest, request);
+        return ResultUtils.success(safeOtherDeliveryOrderVOPage);
     }
 }

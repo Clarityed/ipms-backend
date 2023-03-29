@@ -3,10 +3,12 @@ package com.clarity.ipmsbackend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.AddOtherDeliveryOrderRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.UpdateOtherDeliveryOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.AddOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.UpdateOtherReceiptOrderRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsInventoryBill;
-import com.clarity.ipmsbackend.model.vo.bom.SafeBomVO;
+import com.clarity.ipmsbackend.model.vo.inventorybill.otherdeliveryorder.SafeOtherDeliveryOrderVO;
 import com.clarity.ipmsbackend.model.vo.inventorybill.otherreceiptorder.SafeOtherReceiptOrderVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +36,15 @@ public interface IpmsInventoryBillService extends IService<IpmsInventoryBill> {
      * @return 1 - 成功， 0 - 失败
      */
     int addOtherReceiptOrder(AddOtherReceiptOrderRequest addOtherReceiptOrderRequest, HttpServletRequest request);
+
+    /**
+     * 增加其他出库单
+     *
+     * @param addOtherDeliveryOrderRequest 增加其他出库单请求封装对象
+     * @param request HttpServletRequest
+     * @return 1 - 成功， 0 - 失败
+     */
+    int addOtherDeliveryOrder(AddOtherDeliveryOrderRequest addOtherDeliveryOrderRequest, HttpServletRequest request);
 
     /**
      * 审核库存单据
@@ -69,6 +80,15 @@ public interface IpmsInventoryBillService extends IService<IpmsInventoryBill> {
     int updateOtherReceiptOrder(UpdateOtherReceiptOrderRequest updateOtherReceiptOrderRequest, HttpServletRequest request);
 
     /**
+     * 修改其他出库单
+     *
+     * @param updateOtherDeliveryOrderRequest 修改其他出库单请求封装对象
+     * @param request HttpServletRequest
+     * @return 1 - 成功， 0 - 失败
+     */
+    int updateOtherDeliveryOrder(UpdateOtherDeliveryOrderRequest updateOtherDeliveryOrderRequest, HttpServletRequest request);
+
+    /**
      * 分页查询其他入库单，且数据脱敏，且支持模糊查询
      *
      * @param fuzzyQueryRequest
@@ -76,4 +96,13 @@ public interface IpmsInventoryBillService extends IService<IpmsInventoryBill> {
      * @return
      */
     Page<SafeOtherReceiptOrderVO> pagingFuzzyQueryOtherReceiptOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
+
+    /**
+     * 分页查询其他出库单，且数据脱敏，且支持模糊查询
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    Page<SafeOtherDeliveryOrderVO> pagingFuzzyQueryOtherDeliveryOrder(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
 }

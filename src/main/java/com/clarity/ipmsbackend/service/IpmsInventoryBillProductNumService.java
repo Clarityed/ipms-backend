@@ -1,6 +1,8 @@
 package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.productnum.AddOtherDeliveryOrderProductNumRequest;
+import com.clarity.ipmsbackend.model.dto.inventorybill.otherdeliveryorder.productnum.UpdateOtherDeliveryOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.productnum.AddOtherReceiptOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.dto.inventorybill.otherreceiptorder.productnum.UpdateOtherReceiptOrderProductNumRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsInventoryBillProductNum;
@@ -23,6 +25,15 @@ public interface IpmsInventoryBillProductNumService extends IService<IpmsInvento
     long addOtherReceiptOrderProductAndNum(AddOtherReceiptOrderProductNumRequest addOtherReceiptOrderProductNumRequest, IpmsInventoryBill inventoryBill);
 
     /**
+     * 增加其他出库单商品
+     *
+     * @param addOtherDeliveryOrderProductNumRequest 增加其他出库单商品请求封装对象
+     * @param inventoryBill 其他出库单对象
+     * @return 增加的其他出库单 id
+     */
+    long addOtherDeliveryOrderProductAndNum(AddOtherDeliveryOrderProductNumRequest addOtherDeliveryOrderProductNumRequest, IpmsInventoryBill inventoryBill);
+
+    /**
      * 修改其他入库单商品
      *
      * @param updateOtherReceiptOrderProductNumRequest 修改其他入库单商品请求封装对象
@@ -30,4 +41,13 @@ public interface IpmsInventoryBillProductNumService extends IService<IpmsInvento
      * @return 1 - 表示成功，0 - 表示失败
      */
     int updateOtherReceiptOrderProductAndNum(UpdateOtherReceiptOrderProductNumRequest updateOtherReceiptOrderProductNumRequest, IpmsInventoryBill inventoryBill);
+
+    /**
+     * 修改其他出库单商品
+     *
+     * @param updateOtherDeliveryOrderProductNumRequest 修改其他出库单商品请求封装对象
+     * @param inventoryBill 其他出库单对象
+     * @return 1 - 表示成功，0 - 表示失败
+     */
+    int updateOtherDeliveryOrderProductAndNum(UpdateOtherDeliveryOrderProductNumRequest updateOtherDeliveryOrderProductNumRequest, IpmsInventoryBill inventoryBill);
 }
