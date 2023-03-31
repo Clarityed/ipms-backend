@@ -1,14 +1,16 @@
 package com.clarity.ipmsbackend;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.clarity.ipmsbackend.mapper.IpmsBomMapper;
 import com.clarity.ipmsbackend.mapper.IpmsProductBomMapper;
-import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
+import com.clarity.ipmsbackend.mapper.IpmsProductInventoryMapper;
+import com.clarity.ipmsbackend.model.vo.inventory.ProductInventoryQueryVO;
+import com.clarity.ipmsbackend.model.vo.inventory.SafeProductInventoryQueryVO;
 import com.clarity.ipmsbackend.service.IpmsProductInventoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 @SpringBootTest
 class IpmsBackendApplicationTests {
@@ -22,10 +24,15 @@ class IpmsBackendApplicationTests {
     @Resource
     private IpmsProductInventoryService ipmsProductInventoryService;
 
+    @Resource
+    private IpmsProductInventoryMapper ipmsProductInventoryMapper;
+
     @Test
     void contextLoads() {
-        // String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + "123456789").getBytes());
-        // System.out.println("encryptPassword = " + encryptPassword);
+        List<ProductInventoryQueryVO> productInventoryQueryVOList = ipmsProductInventoryMapper.selectProductInventory("");
+        System.out.println(productInventoryQueryVOList);
+//         String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.SALT + "123456789").getBytes());
+//         System.out.println("encryptPassword = " + encryptPassword);
 //         System.out.println(IpmsBackendApplicationTests.literallyCode("SCTL000201"));
 //        List<Long> longList = new ArrayList<>();
 //        longList.add(1L);
@@ -44,12 +51,12 @@ class IpmsBackendApplicationTests {
 //        List<SafeForwardQueryBomVO> bomOneLevelProduct = ipmsBomMapper.getBomOneLevelProduct(32L);
 //        System.out.println(bomOneLevelProduct);
 //        System.out.println(IpmsBackendApplicationTests.literallyCode("SCDD", "20230312", 1));
-        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
-        productInventoryQueryWrapper.eq("warehouse_position_id", 1L);
-        productInventoryQueryWrapper.eq("warehouse_id", 1L);
-        productInventoryQueryWrapper.eq("product_id", 1L);
-        IpmsProductInventory one = ipmsProductInventoryService.getOne(productInventoryQueryWrapper);
-        System.out.println(one);
+//        QueryWrapper<IpmsProductInventory> productInventoryQueryWrapper = new QueryWrapper<>();
+//        productInventoryQueryWrapper.eq("warehouse_position_id", 1L);
+//        productInventoryQueryWrapper.eq("warehouse_id", 1L);
+//        productInventoryQueryWrapper.eq("product_id", 1L);
+//        IpmsProductInventory one = ipmsProductInventoryService.getOne(productInventoryQueryWrapper);
+//        System.out.println(one);
     }
 
     public static String literallyCode(String prefix, String date, int number) {

@@ -2,20 +2,21 @@ package com.clarity.ipmsbackend.controller;
 
 import com.clarity.ipmsbackend.common.BaseResponse;
 import com.clarity.ipmsbackend.common.ErrorCode;
+import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.common.ResultUtils;
 import com.clarity.ipmsbackend.exception.BusinessException;
+import com.clarity.ipmsbackend.model.vo.inventory.SafeProductInventoryQueryVO;
 import com.clarity.ipmsbackend.service.IpmsProductInventoryService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 库存管理控制器
@@ -64,5 +65,22 @@ public class IpmsProductInventoryController {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "查询商品库存失败");
         }
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 查询商品库存，不支持分页，但是支持更多的字段模糊查询
+     *
+     * @param fuzzyQueryRequest
+     * @param request
+     * @return
+     */
+    @GetMapping("/selectProductInventory")
+    @ApiOperation(value = "查询商品库存，不支持分页，但是支持更多的字段模糊查询（fuzzyText 为空，查商品库存表全部数据）")
+    public BaseResponse<List<SafeProductInventoryQueryVO>> selectProductInventory(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        if (request == null || fuzzyQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        List<SafeProductInventoryQueryVO> safeProductInventoryQueryVOS = ipmsProductInventoryService.selectProductInventory(fuzzyQueryRequest, request);
+        return ResultUtils.success(safeProductInventoryQueryVOS);
     }
 }

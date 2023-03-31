@@ -24,4 +24,16 @@
         product_unit_cost,product_inventory_cost,create_time,
         update_time,is_delete
     </sql>
+    <select id="selectProductInventory"
+            resultType="com.clarity.ipmsbackend.model.vo.inventory.ProductInventoryQueryVO">
+        select ipms_product.product_code, ipms_product.product_name, ipms_product.product_specification,
+               ipms_warehouse.warehouse_name, ipms_product_inventory.warehouse_position_id, ipms_product.unit_id,
+               ipms_product_inventory.product_inventory_surplus_num, ipms_product_inventory.product_inventory_unit_cost, ipms_product_inventory.product_inventory_cost
+        from ipms_product_inventory
+                 inner join ipms_product on ipms_product.product_id = ipms_product_inventory.product_id
+                 inner join ipms_warehouse on ipms_warehouse.warehouse_id = ipms_product_inventory.warehouse_id
+        where ipms_product.is_delete = 0 and ipms_warehouse.is_delete = 0 and ipms_product_inventory.is_delete = 0
+                  and ipms_product.product_code like'%' #{fuzzyText} '%' or ipms_product.product_name like '%' #{fuzzyText} '%'
+                  or ipms_product.product_specification like'%' #{fuzzyText} '%' or ipms_warehouse.warehouse_name like'%' #{fuzzyText} '%';
+    </select>
 </mapper>

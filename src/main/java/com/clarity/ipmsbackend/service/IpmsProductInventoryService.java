@@ -1,7 +1,9 @@
 package com.clarity.ipmsbackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.model.entity.*;
+import com.clarity.ipmsbackend.model.vo.inventory.SafeProductInventoryQueryVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
@@ -119,4 +121,12 @@ public interface IpmsProductInventoryService extends IService<IpmsProductInvento
      * @return 对应商品的可用库存
      */
     BigDecimal getAvailableInventoryOfProduct(long productId, long warehouseId, Long warehousePositionId, HttpServletRequest request);
+
+    /**
+     * 查询商品库存，不支持分页，但是支持更多的字段模糊查询
+     *
+     * @param fuzzyQueryRequest
+     * @return
+     */
+    List<SafeProductInventoryQueryVO> selectProductInventory(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request);
 }

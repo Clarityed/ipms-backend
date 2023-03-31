@@ -4,12 +4,17 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.clarity.ipmsbackend.common.Constant;
 import com.clarity.ipmsbackend.common.ErrorCode;
+import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.constant.WarehouseConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsProductInventoryMapper;
 import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
+import com.clarity.ipmsbackend.model.vo.inventory.ProductInventoryQueryVO;
+import com.clarity.ipmsbackend.model.vo.inventory.SafeProductInventoryQueryVO;
 import com.clarity.ipmsbackend.service.*;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -18,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Clarity
@@ -42,6 +48,9 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsUnitService ipmsUnitService;
 
     @Override
     public BigDecimal addProductInventory(IpmsPurchaseBillProductNum purchaseBillProductNum, BigDecimal purchaseBillExchangeRate) {
@@ -824,6 +833,54 @@ public class IpmsProductInventoryServiceImpl extends ServiceImpl<IpmsProductInve
             return BigDecimal.ZERO;
         }
         return productInventory.getProductInventorySurplusNum();
+    }
+
+    @Override
+    public List<SafeProductInventoryQueryVO> selectProductInventory(FuzzyQueryRequest fuzzyQueryRequest, HttpServletRequest request) {
+        SafeUserVO loginUser = ipmsUserService.getLoginUser(request);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        String fuzzyText = fuzzyQueryRequest.getFuzzyText();
+        List<SafeProductInventoryQueryVO> safeProductInventoryQueryVOList;
+        if (StringUtils.isNotBlank(fuzzyText)) {
+            List<ProductInventoryQueryVO> productInventoryQueryVOList = ipmsProductInventoryMapper.selectProductInventory(fuzzyText);
+            safeProductInventoryQueryVOList = productInventoryQueryVOList.stream().map(productInventoryQueryVO -> {
+                SafeProductInventoryQueryVO safeProductInventoryQueryVO = new SafeProductInventoryQueryVO();
+                BeanUtils.copyProperties(productInventoryQueryVO, safeProductInventoryQueryVO);
+                Long unitId = productInventoryQueryVO.getUnitId();
+                if (unitId == null || unitId <= 0) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统业务逻辑错误，因为商品必定存在计量单位");
+                }
+                IpmsUnit unit = ipmsUnitService.getById(unitId);
+                safeProductInventoryQueryVO.setUnitName(unit.getUnitName());
+                Long warehousePositionId = productInventoryQueryVO.getWarehousePositionId();
+                if (warehousePositionId != null && warehousePositionId > 0) {
+                    IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                    safeProductInventoryQueryVO.setWarehousePositionName(warehousePosition.getWarehousePositionName());
+                }
+                return safeProductInventoryQueryVO;
+            }).collect(Collectors.toList());
+        } else {
+            List<ProductInventoryQueryVO> productInventoryQueryVOList = ipmsProductInventoryMapper.selectProductInventory("");
+            safeProductInventoryQueryVOList = productInventoryQueryVOList.stream().map(productInventoryQueryVO -> {
+                SafeProductInventoryQueryVO safeProductInventoryQueryVO = new SafeProductInventoryQueryVO();
+                BeanUtils.copyProperties(productInventoryQueryVO, safeProductInventoryQueryVO);
+                Long unitId = productInventoryQueryVO.getUnitId();
+                if (unitId == null || unitId <= 0) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统业务逻辑错误，因为商品必定存在计量单位");
+                }
+                IpmsUnit unit = ipmsUnitService.getById(unitId);
+                safeProductInventoryQueryVO.setUnitName(unit.getUnitName());
+                Long warehousePositionId = productInventoryQueryVO.getWarehousePositionId();
+                if (warehousePositionId != null && warehousePositionId > 0) {
+                    IpmsWarehousePosition warehousePosition = ipmsWarehousePositionService.getById(warehousePositionId);
+                    safeProductInventoryQueryVO.setWarehousePositionName(warehousePosition.getWarehousePositionName());
+                }
+                return safeProductInventoryQueryVO;
+            }).collect(Collectors.toList());
+        }
+        return safeProductInventoryQueryVOList;
     }
 }
 

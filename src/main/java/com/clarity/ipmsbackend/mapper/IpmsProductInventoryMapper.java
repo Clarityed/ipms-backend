@@ -2,6 +2,11 @@ package com.clarity.ipmsbackend.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
+import com.clarity.ipmsbackend.model.vo.inventory.ProductInventoryQueryVO;
+import com.clarity.ipmsbackend.model.vo.inventory.SafeProductInventoryQueryVO;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
 * @author Clarity
@@ -11,6 +16,13 @@ import com.clarity.ipmsbackend.model.entity.IpmsProductInventory;
 */
 public interface IpmsProductInventoryMapper extends BaseMapper<IpmsProductInventory> {
 
+    /**
+     * 查询商品库存，不支持分页，但是支持更多的字段模糊查询
+     *
+     * @param fuzzyText
+     * @return
+     */
+    List<ProductInventoryQueryVO> selectProductInventory(@Param("fuzzyText") String fuzzyText);
 }
 
 
