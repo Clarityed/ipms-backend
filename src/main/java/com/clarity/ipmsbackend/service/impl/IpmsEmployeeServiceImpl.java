@@ -10,13 +10,10 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsEmployeeMapper;
 import com.clarity.ipmsbackend.model.dto.employee.AddEmployeeRequest;
 import com.clarity.ipmsbackend.model.dto.employee.UpdateEmployeeRequest;
-import com.clarity.ipmsbackend.model.entity.IpmsDepartment;
-import com.clarity.ipmsbackend.model.entity.IpmsEmployee;
+import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeEmployeeVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
-import com.clarity.ipmsbackend.service.IpmsDepartmentService;
-import com.clarity.ipmsbackend.service.IpmsEmployeeService;
-import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +44,21 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsPurchaseBillService ipmsPurchaseBillService;
+
+    @Resource
+    private IpmsSaleBillService ipmsSaleBillService;
+
+    @Resource
+    private IpmsProductionBillService ipmsProductionBillService;
+
+    @Resource
+    private IpmsInventoryBillService ipmsInventoryBillService;
+
+    @Resource
+    private IpmsWarehouseService ipmsWarehouseService;
 
     @Override
     public int addEmployee(AddEmployeeRequest addEmployeeRequest) {
@@ -90,7 +102,37 @@ public class IpmsEmployeeServiceImpl extends ServiceImpl<IpmsEmployeeMapper, Ipm
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不合法");
         }
-        // todo 如果员工和订单有关联，无法删除员工，还有和仓库有关系
+        // 如果员工和订单有关联，无法删除员工，还有和仓库有关系
+        QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillQueryWrapper.eq("department_id", id);
+        List<IpmsInventoryBill> validAsInventoryBill = ipmsInventoryBillService.list(ipmsInventoryBillQueryWrapper);
+        if (validAsInventoryBill != null && validAsInventoryBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "职员已被使用");
+        }
+        QueryWrapper<IpmsSaleBill> ipmsSaleBillQueryWrapper = new QueryWrapper<>();
+        ipmsSaleBillQueryWrapper.eq("department_id", id);
+        List<IpmsSaleBill> validAsSaleBill = ipmsSaleBillService.list(ipmsSaleBillQueryWrapper);
+        if (validAsSaleBill != null && validAsSaleBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "职员已被使用");
+        }
+        QueryWrapper<IpmsProductionBill> ipmsProductionBillQueryWrapper = new QueryWrapper<>();
+        ipmsProductionBillQueryWrapper.eq("department_id", id);
+        List<IpmsProductionBill> validAsProductionBill = ipmsProductionBillService.list(ipmsProductionBillQueryWrapper);
+        if (validAsProductionBill != null && validAsProductionBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "职员已被使用");
+        }
+        QueryWrapper<IpmsPurchaseBill> ipmsPurchaseBillQueryWrapper = new QueryWrapper<>();
+        ipmsPurchaseBillQueryWrapper.eq("department_id", id);
+        List<IpmsPurchaseBill> validAsPurchaseBill = ipmsPurchaseBillService.list(ipmsPurchaseBillQueryWrapper);
+        if (validAsPurchaseBill != null && validAsPurchaseBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "职员已被使用");
+        }
+        QueryWrapper<IpmsWarehouse> ipmsWarehouseQueryWrapper = new QueryWrapper<>();
+        ipmsWarehouseQueryWrapper.eq("warehouse_keeper_id", id);
+        List<IpmsWarehouse> validAsWarehouse = ipmsWarehouseService.list(ipmsWarehouseQueryWrapper);
+        if (validAsWarehouse != null && validAsWarehouse.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "职员已被使用");
+        }
         int result = ipmsEmployeeMapper.deleteById(id);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);

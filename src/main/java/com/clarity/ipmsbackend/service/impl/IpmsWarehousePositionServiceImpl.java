@@ -11,13 +11,10 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsWarehousePositionMapper;
 import com.clarity.ipmsbackend.model.dto.warehouse.position.AddWarehousePositionRequest;
 import com.clarity.ipmsbackend.model.dto.warehouse.position.UpdateWarehousePositionRequest;
-import com.clarity.ipmsbackend.model.entity.IpmsWarehouse;
-import com.clarity.ipmsbackend.model.entity.IpmsWarehousePosition;
+import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.model.vo.SafeWarehousePositionVO;
-import com.clarity.ipmsbackend.service.IpmsUserService;
-import com.clarity.ipmsbackend.service.IpmsWarehousePositionService;
-import com.clarity.ipmsbackend.service.IpmsWarehouseService;
+import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +45,21 @@ public class IpmsWarehousePositionServiceImpl extends ServiceImpl<IpmsWarehouseP
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsProductionBillProductNumService ipmsProductionBillProductNumService;
+
+    @Resource
+    private IpmsSaleBillProductNumService ipmsSaleBillProductNumService;
+
+    @Resource
+    private IpmsPurchaseBillProductNumService ipmsPurchaseBillProductNumService;
+
+    @Resource
+    private IpmsInventoryBillProductNumService ipmsInventoryBillProductNumService;
+
+    @Resource
+    private IpmsProductionBillService ipmsProductionBillService;
 
     @Override
     public String warehousePositionCodeAutoGenerate() {
@@ -115,7 +127,38 @@ public class IpmsWarehousePositionServiceImpl extends ServiceImpl<IpmsWarehouseP
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "仓位 id 不合法");
         }
-        // 2. todo 判断仓位是否被相关订单使用
+        // 2. 判断仓位是否被相关订单使用
+        QueryWrapper<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillProductNumQueryWrapper.eq("warehouse_position_id", id);
+        List<IpmsInventoryBillProductNum> validAsInventoryBillProductNum = ipmsInventoryBillProductNumService.list(ipmsInventoryBillProductNumQueryWrapper);
+        if (validAsInventoryBillProductNum != null && validAsInventoryBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "仓位已被使用");
+        }
+        QueryWrapper<IpmsSaleBillProductNum> ipmsSaleBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsSaleBillProductNumQueryWrapper.eq("warehouse_position_id", id);
+        List<IpmsSaleBillProductNum> validAsSaleBillProductNum = ipmsSaleBillProductNumService.list(ipmsSaleBillProductNumQueryWrapper);
+        if (validAsSaleBillProductNum != null && validAsSaleBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "仓位已被使用");
+        }
+        QueryWrapper<IpmsProductionBillProductNum> ipmsProductionBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsProductionBillProductNumQueryWrapper.eq("warehouse_position_id", id);
+        List<IpmsProductionBillProductNum> validAsProductionBillProductNum = ipmsProductionBillProductNumService.list(ipmsProductionBillProductNumQueryWrapper);
+        if (validAsProductionBillProductNum != null && validAsProductionBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "仓位已被使用");
+        }
+        QueryWrapper<IpmsPurchaseBillProductNum> ipmsPurchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsPurchaseBillProductNumQueryWrapper.eq("warehouse_position_id", id);
+        List<IpmsPurchaseBillProductNum> validAsPurchaseBillProductNum = ipmsPurchaseBillProductNumService.list(ipmsPurchaseBillProductNumQueryWrapper);
+        if (validAsPurchaseBillProductNum != null && validAsPurchaseBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "仓位已被使用");
+        }
+        QueryWrapper<IpmsProductionBill> ipmsProductionBillQueryWrapper = new QueryWrapper<>();
+        ipmsProductionBillQueryWrapper.eq("warehouse_position_id", id);
+        List<IpmsProductionBill> validAsProductionBill = ipmsProductionBillService.list(ipmsProductionBillQueryWrapper);
+        if (validAsProductionBill != null && validAsProductionBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "仓位已被使用");
+        }
+        // todo 可能 BOM 商品也要判断有没有仓位
         // 3. 删除仓位
         int result = ipmsWarehousePositionMapper.deleteById(id);
         if (result != 1) {

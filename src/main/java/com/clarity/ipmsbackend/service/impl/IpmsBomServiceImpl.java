@@ -168,7 +168,15 @@ public class IpmsBomServiceImpl extends ServiceImpl<IpmsBomMapper, IpmsBom>
         if (BomConstant.CHECKED_STATE == bom.getCheckState()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "无法删除，单据已审核");
         }
-        // todo 3. 判断 BOM 是否被使用，被使用的 BOM 无法删除。
+        // 3. 判断 BOM 是否被使用，被使用的 BOM 无法删除。
+        // 作为其他 BOM 的子件
+        QueryWrapper<IpmsProductBom> productBomQueryWrapper = new QueryWrapper<>();
+        productBomQueryWrapper.eq("subcomponent_bom_id", id);
+        List<IpmsProductBom> validAsSubcomponentBom = ipmsProductBomService.list(productBomQueryWrapper);
+        if (validAsSubcomponentBom != null && validAsSubcomponentBom.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "该 BOM 已经作为其他 BOM 子件商品的 BOM");
+        }
+        // todo 判断 BOM id 是否被生产任务单引用
         // 4. 删除 BOM，关联删除商品 BOM 关系信息
         int bomDeleteResult = ipmsBomMapper.deleteById(id);
         if (bomDeleteResult != 1) {

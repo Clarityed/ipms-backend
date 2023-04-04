@@ -11,13 +11,10 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsProductMapper;
 import com.clarity.ipmsbackend.model.dto.product.AddProductRequest;
 import com.clarity.ipmsbackend.model.dto.product.UpdateProductRequest;
-import com.clarity.ipmsbackend.model.entity.IpmsProduct;
-import com.clarity.ipmsbackend.model.entity.IpmsUnit;
+import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeProductVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
-import com.clarity.ipmsbackend.service.IpmsProductService;
-import com.clarity.ipmsbackend.service.IpmsUnitService;
-import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +47,21 @@ public class IpmsProductServiceImpl extends ServiceImpl<IpmsProductMapper, IpmsP
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsProductBomService ipmsProductBomService;
+
+    @Resource
+    private IpmsProductionBillProductNumService ipmsProductionBillProductNumService;
+
+    @Resource
+    private IpmsSaleBillProductNumService ipmsSaleBillProductNumService;
+
+    @Resource
+    private IpmsPurchaseBillProductNumService ipmsPurchaseBillProductNumService;
+
+    @Resource
+    private IpmsInventoryBillProductNumService ipmsInventoryBillProductNumService;
 
     @Override
     public String productCodeAutoGenerate() {
@@ -141,7 +153,37 @@ public class IpmsProductServiceImpl extends ServiceImpl<IpmsProductMapper, IpmsP
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "商品 id 不合法");
         }
-        // 2. todo 判断商品有没有被 BOM 单使用，被使用无法删除，与指相似的有销售订单，等等其他相关订单
+        // 2. 判断商品有没有被 BOM 单使用，被使用无法删除，与指相似的有销售订单，等等其他相关订单
+        QueryWrapper<IpmsInventoryBillProductNum> ipmsInventoryBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillProductNumQueryWrapper.eq("product_id", id);
+        List<IpmsInventoryBillProductNum> validAsInventoryBillProductNum = ipmsInventoryBillProductNumService.list(ipmsInventoryBillProductNumQueryWrapper);
+        if (validAsInventoryBillProductNum != null && validAsInventoryBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "商品已被使用");
+        }
+        QueryWrapper<IpmsSaleBillProductNum> ipmsSaleBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsSaleBillProductNumQueryWrapper.eq("product_id", id);
+        List<IpmsSaleBillProductNum> validAsSaleBillProductNum = ipmsSaleBillProductNumService.list(ipmsSaleBillProductNumQueryWrapper);
+        if (validAsSaleBillProductNum != null && validAsSaleBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "商品已被使用");
+        }
+        QueryWrapper<IpmsProductionBillProductNum> ipmsProductionBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsProductionBillProductNumQueryWrapper.eq("product_id", id);
+        List<IpmsProductionBillProductNum> validAsProductionBillProductNum = ipmsProductionBillProductNumService.list(ipmsProductionBillProductNumQueryWrapper);
+        if (validAsProductionBillProductNum != null && validAsProductionBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "商品已被使用");
+        }
+        QueryWrapper<IpmsPurchaseBillProductNum> ipmsPurchaseBillProductNumQueryWrapper = new QueryWrapper<>();
+        ipmsPurchaseBillProductNumQueryWrapper.eq("product_id", id);
+        List<IpmsPurchaseBillProductNum> validAsPurchaseBillProductNum = ipmsPurchaseBillProductNumService.list(ipmsPurchaseBillProductNumQueryWrapper);
+        if (validAsPurchaseBillProductNum != null && validAsPurchaseBillProductNum.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "商品已被使用");
+        }
+        QueryWrapper<IpmsProductBom> ipmsProductBomQueryWrapper = new QueryWrapper<>();
+        ipmsProductBomQueryWrapper.eq("product_id", id);
+        List<IpmsProductBom> validAsProductBom = ipmsProductBomService.list(ipmsProductBomQueryWrapper);
+        if (validAsProductBom != null && validAsProductBom.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "商品已被使用");
+        }
         // 3. 删除商品
         int result = ipmsProductMapper.deleteById(id);
         if (result != 1) {

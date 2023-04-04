@@ -8,20 +8,18 @@ import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.common.FuzzyQueryRequest;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsCustomerMapper;
-import com.clarity.ipmsbackend.model.dto.customer.linkman.AddCustomerLinkmanRequest;
 import com.clarity.ipmsbackend.model.dto.customer.AddCustomerRequest;
-import com.clarity.ipmsbackend.model.dto.customer.linkman.UpdateCustomerLinkmanRequest;
 import com.clarity.ipmsbackend.model.dto.customer.UpdateCustomerRequest;
+import com.clarity.ipmsbackend.model.dto.customer.linkman.AddCustomerLinkmanRequest;
+import com.clarity.ipmsbackend.model.dto.customer.linkman.UpdateCustomerLinkmanRequest;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
 import com.clarity.ipmsbackend.model.entity.IpmsCustomerLinkman;
-import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
-import com.clarity.ipmsbackend.model.entity.IpmsCustomer;
+import com.clarity.ipmsbackend.model.entity.IpmsInventoryBill;
+import com.clarity.ipmsbackend.model.entity.IpmsSaleBill;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerLinkmanVO;
 import com.clarity.ipmsbackend.model.vo.SafeCustomerVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
-import com.clarity.ipmsbackend.service.IpmsCustomerLinkmanService;
-import com.clarity.ipmsbackend.service.IpmsCustomerService;
-import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +55,12 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsSaleBillService ipmsSaleBillService;
+
+    @Resource
+    private IpmsInventoryBillService ipmsInventoryBillService;
 
     @Override
     public String customerCodeAutoGenerate() {
@@ -123,7 +127,19 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不存在或者 id 不合法");
         }
-        // todo 如果客户有订单无法删除客户，订单关联了客户的信息，存储了客户的 id，所以客户不能删除，否则查询订单会报错
+        // 如果客户有订单无法删除客户，订单关联了客户的信息，存储了客户的 id，所以客户不能删除，否则查询订单会报错
+        QueryWrapper<IpmsSaleBill> saleBillQueryWrapper = new QueryWrapper<>();
+        saleBillQueryWrapper.eq("customer_id", id);
+        List<IpmsSaleBill> validAsSaleBill = ipmsSaleBillService.list(saleBillQueryWrapper);
+        if (validAsSaleBill != null && validAsSaleBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "客户已被使用");
+        }
+        QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillQueryWrapper.eq("customer_id", id);
+        List<IpmsInventoryBill> validAsInventoryBill = ipmsInventoryBillService.list(ipmsInventoryBillQueryWrapper);
+        if (validAsInventoryBill != null && validAsInventoryBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "客户已被使用");
+        }
         // 2. 删除客户信息
         int customerDeleteResult = ipmsCustomerMapper.deleteById(id);
         if (customerDeleteResult != 1) {
@@ -160,6 +176,7 @@ public class IpmsCustomerServiceImpl extends ServiceImpl<IpmsCustomerMapper, Ipm
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "客户编号必须相同无法修改");
             }
         }
+        // todo 有时间的话实现删除
         // 4. 更新数据
         //     更新客户信息
         IpmsCustomer newCustomer = new IpmsCustomer();

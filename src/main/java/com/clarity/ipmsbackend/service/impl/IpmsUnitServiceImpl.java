@@ -10,9 +10,12 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsUnitMapper;
 import com.clarity.ipmsbackend.model.dto.unit.AddUnitRequest;
 import com.clarity.ipmsbackend.model.dto.unit.UpdateUnitRequest;
+import com.clarity.ipmsbackend.model.entity.IpmsInventoryBill;
+import com.clarity.ipmsbackend.model.entity.IpmsProduct;
 import com.clarity.ipmsbackend.model.entity.IpmsUnit;
 import com.clarity.ipmsbackend.model.vo.SafeUnitVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
+import com.clarity.ipmsbackend.service.IpmsProductService;
 import com.clarity.ipmsbackend.service.IpmsUnitService;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
@@ -42,6 +45,9 @@ public class IpmsUnitServiceImpl extends ServiceImpl<IpmsUnitMapper, IpmsUnit>
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsProductService ipmsProductService;
 
     @Override
     public String unitCodeAutoGenerate() {
@@ -99,7 +105,13 @@ public class IpmsUnitServiceImpl extends ServiceImpl<IpmsUnitMapper, IpmsUnit>
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "计量单位 id 不合法");
         }
-        // todo 计量单位会被相关单据引用无法直接删除，必须删除引用它的单据然后才能删除，也有可能被商品引用
+        // 计量单位会被相关单据引用无法直接删除，必须删除引用它的单据然后才能删除，也有可能被商品引用
+        QueryWrapper<IpmsProduct> ipmsProductQueryWrapper = new QueryWrapper<>();
+        ipmsProductQueryWrapper.eq("customer_id", id);
+        List<IpmsProduct> validAsProduct = ipmsProductService.list(ipmsProductQueryWrapper);
+        if (validAsProduct != null && validAsProduct.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "计量单位已被使用");
+        }
         int result = ipmsUnitMapper.deleteById(id);
         if (result != 1) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);

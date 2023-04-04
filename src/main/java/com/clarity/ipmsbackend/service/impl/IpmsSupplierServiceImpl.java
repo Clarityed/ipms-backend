@@ -12,11 +12,14 @@ import com.clarity.ipmsbackend.model.dto.supplier.linkman.AddSupplierLinkmanRequ
 import com.clarity.ipmsbackend.model.dto.supplier.AddSupplierRequest;
 import com.clarity.ipmsbackend.model.dto.supplier.linkman.UpdateSupplierLinkmanRequest;
 import com.clarity.ipmsbackend.model.dto.supplier.UpdateSupplierRequest;
+import com.clarity.ipmsbackend.model.entity.IpmsInventoryBill;
+import com.clarity.ipmsbackend.model.entity.IpmsPurchaseBill;
 import com.clarity.ipmsbackend.model.entity.IpmsSupplier;
 import com.clarity.ipmsbackend.model.entity.IpmsSupplierLinkman;
 import com.clarity.ipmsbackend.model.vo.SafeSupplierLinkmanVO;
 import com.clarity.ipmsbackend.model.vo.SafeSupplierVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
+import com.clarity.ipmsbackend.service.IpmsPurchaseBillService;
 import com.clarity.ipmsbackend.service.IpmsSupplierLinkmanService;
 import com.clarity.ipmsbackend.service.IpmsSupplierService;
 import com.clarity.ipmsbackend.service.IpmsUserService;
@@ -54,6 +57,12 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
 
     @Resource
     private IpmsUserService ipmsUserService;
+
+    @Resource
+    private IpmsPurchaseBillService ipmsPurchaseBillService;
+
+    @Resource
+    private IpmsInventoryBillServiceImpl ipmsInventoryBillService;
 
     @Override
     public String supplierCodeAutoGenerate() {
@@ -120,7 +129,19 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "id 不存在或者 id 不合法");
         }
-        // todo 如果供应商有订单无法删除供应商，订单关联了供应商的信息，存储了供应商的 id，所以供应商不能删除，否则查询订单会报错
+        // 如果供应商有订单无法删除供应商，订单关联了供应商的信息，存储了供应商的 id，所以供应商不能删除，否则查询订单会报错
+        QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillQueryWrapper.eq("supplier_id", id);
+        List<IpmsInventoryBill> validAsInventoryBill = ipmsInventoryBillService.list(ipmsInventoryBillQueryWrapper);
+        if (validAsInventoryBill != null && validAsInventoryBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "供应商已被使用");
+        }
+        QueryWrapper<IpmsPurchaseBill> ipmsPurchaseBillQueryWrapper = new QueryWrapper<>();
+        ipmsPurchaseBillQueryWrapper.eq("supplier_id", id);
+        List<IpmsPurchaseBill> validAsPurchaseBill = ipmsPurchaseBillService.list(ipmsPurchaseBillQueryWrapper);
+        if (validAsPurchaseBill != null && validAsPurchaseBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "供应商已被使用");
+        }
         // 2. 删除供应商信息
         int customerDeleteResult = ipmsSupplierMapper.deleteById(id);
         if (customerDeleteResult != 1) {
@@ -157,6 +178,7 @@ public class IpmsSupplierServiceImpl extends ServiceImpl<IpmsSupplierMapper, Ipm
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "供应商编号必须相同无法修改");
             }
         }
+        // todo 有时间的话实现删除
         // 4. 更新数据
         //     更新供应商信息
         IpmsSupplier newSupplier = new IpmsSupplier();

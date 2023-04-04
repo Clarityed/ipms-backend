@@ -10,15 +10,10 @@ import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsDepartmentMapper;
 import com.clarity.ipmsbackend.model.dto.department.AddDepartmentRequest;
 import com.clarity.ipmsbackend.model.dto.department.UpdateDepartmentRequest;
-import com.clarity.ipmsbackend.model.entity.IpmsDepartment;
-import com.clarity.ipmsbackend.model.entity.IpmsEmployee;
-import com.clarity.ipmsbackend.model.entity.IpmsEnterprise;
+import com.clarity.ipmsbackend.model.entity.*;
 import com.clarity.ipmsbackend.model.vo.SafeDepartmentVO;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
-import com.clarity.ipmsbackend.service.IpmsDepartmentService;
-import com.clarity.ipmsbackend.service.IpmsEmployeeService;
-import com.clarity.ipmsbackend.service.IpmsEnterpriseService;
-import com.clarity.ipmsbackend.service.IpmsUserService;
+import com.clarity.ipmsbackend.service.*;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -52,6 +47,18 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
 
     @Resource
     private IpmsEmployeeService ipmsEmployeeService;
+
+    @Resource
+    private IpmsPurchaseBillService ipmsPurchaseBillService;
+
+    @Resource
+    private IpmsSaleBillService ipmsSaleBillService;
+
+    @Resource
+    private IpmsProductionBillService ipmsProductionBillService;
+
+    @Resource
+    private IpmsInventoryBillService ipmsInventoryBillService;
 
     @Override
     public int addDepartment(AddDepartmentRequest addDepartmentRequest, HttpServletRequest request) {
@@ -91,6 +98,30 @@ public class IpmsDepartmentServiceImpl extends ServiceImpl<IpmsDepartmentMapper,
         List<IpmsEmployee> employeeList = ipmsEmployeeService.list(employeeQueryWrapper);
         if (employeeList.size() != 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "该部门下还要成员");
+        }
+        QueryWrapper<IpmsInventoryBill> ipmsInventoryBillQueryWrapper = new QueryWrapper<>();
+        ipmsInventoryBillQueryWrapper.eq("department_id", id);
+        List<IpmsInventoryBill> validAsInventoryBill = ipmsInventoryBillService.list(ipmsInventoryBillQueryWrapper);
+        if (validAsInventoryBill != null && validAsInventoryBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "部门已被使用");
+        }
+        QueryWrapper<IpmsSaleBill> ipmsSaleBillQueryWrapper = new QueryWrapper<>();
+        ipmsSaleBillQueryWrapper.eq("department_id", id);
+        List<IpmsSaleBill> validAsSaleBill = ipmsSaleBillService.list(ipmsSaleBillQueryWrapper);
+        if (validAsSaleBill != null && validAsSaleBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "部门已被使用");
+        }
+        QueryWrapper<IpmsProductionBill> ipmsProductionBillQueryWrapper = new QueryWrapper<>();
+        ipmsProductionBillQueryWrapper.eq("department_id", id);
+        List<IpmsProductionBill> validAsProductionBill = ipmsProductionBillService.list(ipmsProductionBillQueryWrapper);
+        if (validAsProductionBill != null && validAsProductionBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "部门已被使用");
+        }
+        QueryWrapper<IpmsPurchaseBill> ipmsPurchaseBillQueryWrapper = new QueryWrapper<>();
+        ipmsPurchaseBillQueryWrapper.eq("department_id", id);
+        List<IpmsPurchaseBill> validAsPurchaseBill = ipmsPurchaseBillService.list(ipmsPurchaseBillQueryWrapper);
+        if (validAsPurchaseBill != null && validAsPurchaseBill.size() > 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "部门已被使用");
         }
         int result = ipmsDepartmentMapper.deleteById(id);
         if (result != 1) {

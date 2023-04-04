@@ -9,6 +9,9 @@ spring:
   application:
     # 项目名称
     name: ipms-backend
+  profiles:
+    # 标记该 yml 配置文件是什么模式下启动的
+    active: dev
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
