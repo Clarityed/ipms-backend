@@ -47,9 +47,10 @@ public interface IpmsUserService extends IService<IpmsUser> {
      * 更新用户
      *
      * @param updateUserRequest
+     * @param request
      * @return
      */
-    int updateUser(UpdateUserRequest updateUserRequest);
+    int updateUser(UpdateUserRequest updateUserRequest, HttpServletRequest request);
 
     /**
      * 根据 id 删除用户

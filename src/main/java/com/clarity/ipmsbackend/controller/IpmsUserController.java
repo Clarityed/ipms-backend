@@ -95,13 +95,12 @@ public class IpmsUserController {
      * @return
      */
     @PutMapping("/updateUser")
-    @ApiOperation(value = "更新用户信息（管理员不能修改自己的身份字段）")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Integer> updateUser(@RequestBody UpdateUserRequest updateUserRequest) {
-        if (updateUserRequest == null) {
+    @ApiOperation(value = "更新用户信息（任意用户，管理员和其他用户都无法修改自己的身份，但是管理可以修改其他用户的所有信息）")
+    public BaseResponse<Integer> updateUser(@RequestBody UpdateUserRequest updateUserRequest, HttpServletRequest request) {
+        if (updateUserRequest == null || request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        int result = ipmsUserService.updateUser(updateUserRequest);
+        int result = ipmsUserService.updateUser(updateUserRequest, request);
         return ResultUtils.success(result);
     }
 

@@ -5,7 +5,6 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
 
 /**
  * 安全用户响应封装类（脱敏后的用户信息）
@@ -63,13 +62,13 @@ public class SafeUserVO implements Serializable {
      * 创建时间
      */
     @ApiModelProperty("创建时间")
-    private Date createTime;
+    private String createTime;
 
     /**
      * 修改时间
      */
     @ApiModelProperty("修改时间")
-    private Date updateTime;
+    private String updateTime;
 
     private static final long serialVersionUID = 1L;
 }

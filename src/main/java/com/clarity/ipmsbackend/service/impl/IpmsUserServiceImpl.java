@@ -16,6 +16,7 @@ import com.clarity.ipmsbackend.model.entity.IpmsUser;
 import com.clarity.ipmsbackend.model.vo.SafeUserVO;
 import com.clarity.ipmsbackend.service.IpmsUserService;
 import com.clarity.ipmsbackend.utils.CodeAutoGenerator;
+import com.clarity.ipmsbackend.utils.TimeFormatUtil;
 import com.clarity.ipmsbackend.utils.UserRoleValid;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -30,15 +31,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
-* @author Clarity
-* @description 针对表【ipms_user】的数据库操作Service实现
-* @createDate 2023-02-20 14:23:14
-*/
+ * @author Clarity
+ * @description 针对表【ipms_user】的数据库操作Service实现
+ * @createDate 2023-02-20 14:23:14
+ */
 
 @Slf4j
 @Service
 public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
-    implements IpmsUserService{
+        implements IpmsUserService {
 
     @Resource
     private IpmsUserMapper ipmsUserMapper;
@@ -70,6 +71,8 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
         //4. 用户信息进行敏感信息脱敏返回
         SafeUserVO safeUserVO = new SafeUserVO();
         BeanUtils.copyProperties(user, safeUserVO);
+        safeUserVO.setCreateTime(TimeFormatUtil.dateFormatting(user.getCreateTime()));
+        safeUserVO.setUpdateTime(TimeFormatUtil.dateFormatting(user.getUpdateTime()));
         //5. 将用户信息存入 session 中
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, safeUserVO);
         return safeUserVO;
@@ -140,7 +143,12 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
     }
 
     @Override
-    public int updateUser(UpdateUserRequest updateUserRequest) {
+    public int updateUser(UpdateUserRequest updateUserRequest, HttpServletRequest request) {
+        // 登录后的用户才能使用
+        SafeUserVO loginUser = this.getLoginUser(request);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
         // 1. 校验参数
         Long userId = updateUserRequest.getUserId();
         if (userId == null || userId <= 0) {
@@ -159,7 +167,7 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度小于 9 或者密码长度大于 16");
             }
         }
-        //  3. 判断用户是否存在
+        // 3. 判断用户是否存在
         // 未修改前先用数据库查看用户信息，顺便判断用户是否存在
         IpmsUser user = ipmsUserMapper.selectById(userId);
         if (user == null) {
@@ -169,17 +177,28 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
         String oldUserCode = user.getUserCode();
         String oldUserRole = user.getUserRole();
         String userRole = updateUserRequest.getUserRole();
-        if (userRole != null) {
-            // 验证角色输入是否有错误
-            if (!userRole.equals(oldUserRole)) {
-                int validResult = UserRoleValid.valid(userRole);
-                if (validResult != 1) {
-                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "角色输入有误");
+        // 管理员只有一个
+        // 如果是本人修改自己的数据，管理员和其他用户都不允许修改自己的身份
+        if (loginUser.getUserId().equals(userId)) {
+            if (userRole != null) {
+                // 管理员和其他用户无法修改自己的角色身份
+                if (!userRole.equals(oldUserRole)) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "无法修改自己的身份");
                 }
             }
-            // 管理员无法修改自己的角色身份
-            if (UserConstant.ADMIN_ROLE.equals(oldUserRole)) {
-                userRole = null;
+        } else {
+            // 只能管理员修改别人的信息
+            // 验证角色输入是否有错误
+            if (!UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "只有管理员才能修改其他用户的信息");
+            }
+            if (userRole != null) {
+                if (!userRole.equals(oldUserRole)) {
+                    int validResult = UserRoleValid.valid(userRole);
+                    if (validResult != 1) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "角色输入有误");
+                    }
+                }
             }
         }
         // 账号不能重复
@@ -258,6 +277,8 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
         List<SafeUserVO> safeUserVOList = userPage.getRecords().stream().map(ipmsUser -> {
             SafeUserVO safeUserVO = new SafeUserVO();
             BeanUtils.copyProperties(ipmsUser, safeUserVO);
+            safeUserVO.setCreateTime(TimeFormatUtil.dateFormatting(ipmsUser.getCreateTime()));
+            safeUserVO.setUpdateTime(TimeFormatUtil.dateFormatting(ipmsUser.getUpdateTime()));
             return safeUserVO;
         }).collect(Collectors.toList());
         // 关键步骤
@@ -279,7 +300,7 @@ public class IpmsUserServiceImpl extends ServiceImpl<IpmsUserMapper, IpmsUser>
         }
         String nextUserCode = null;
         try {
-             nextUserCode = CodeAutoGenerator.generatorCode(userCode);
+            nextUserCode = CodeAutoGenerator.generatorCode(userCode);
         } catch (Exception e) {
             log.info("编码自动生成器异常");
         }
