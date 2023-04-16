@@ -8,6 +8,7 @@ import com.clarity.ipmsbackend.common.Constant;
 import com.clarity.ipmsbackend.common.ErrorCode;
 import com.clarity.ipmsbackend.common.SaleBillQueryRequest;
 import com.clarity.ipmsbackend.constant.SaleBillConstant;
+import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.mapper.IpmsSaleBillMapper;
 import com.clarity.ipmsbackend.model.dto.salebill.AddSaleBillRequest;
@@ -317,6 +318,18 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
         if (saleBill == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
+        // 如果是销售订单必须是销售主管
+        if (saleBill.getSaleBillType().equals(SaleBillConstant.SALE_ORDER)) {
+            if (!ipmsUserService.getLoginUser(request).getUserRole().equals(UserConstant.SALE_ROLE_SUPER)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+        }
+        // 如果是销售出库单和销售退货单那么审核人必须是仓管员
+        if (saleBill.getSaleBillType().equals(SaleBillConstant.SALE_DELIVERY_ORDER) || saleBill.getSaleBillType().equals(SaleBillConstant.SALE_RETURN_ORDER)) {
+            if (ipmsUserService.getLoginUser(request).getUserRole().equals(UserConstant.SALE_ROLE_SUPER)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+        }
         Integer checkState = saleBill.getCheckState();
         if (Constant.CHECKED == checkState) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据已审核");
@@ -418,6 +431,18 @@ public class IpmsSaleBillServiceImpl extends ServiceImpl<IpmsSaleBillMapper, Ipm
         IpmsSaleBill saleBill = ipmsSaleBillMapper.selectById(saleBillId);
         if (saleBill == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 如果是销售订单必须是销售主管
+        if (saleBill.getSaleBillType().equals(SaleBillConstant.SALE_ORDER)) {
+            if (!ipmsUserService.getLoginUser(request).getUserRole().equals(UserConstant.SALE_ROLE_SUPER)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
+        }
+        // 如果是销售出库单和销售退货单那么审核人必须是仓管员
+        if (saleBill.getSaleBillType().equals(SaleBillConstant.SALE_DELIVERY_ORDER) || saleBill.getSaleBillType().equals(SaleBillConstant.SALE_RETURN_ORDER)) {
+            if (ipmsUserService.getLoginUser(request).getUserRole().equals(UserConstant.SALE_ROLE_SUPER)) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
         }
         if (Constant.UNCHECKED == saleBill.getCheckState()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "单据未审核");

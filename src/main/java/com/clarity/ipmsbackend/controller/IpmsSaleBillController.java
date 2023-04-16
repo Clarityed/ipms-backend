@@ -10,6 +10,7 @@ import com.clarity.ipmsbackend.constant.UserConstant;
 import com.clarity.ipmsbackend.exception.BusinessException;
 import com.clarity.ipmsbackend.model.dto.salebill.UpdateSaleBillRequest;
 import com.clarity.ipmsbackend.model.dto.salebill.AddSaleBillRequest;
+import com.clarity.ipmsbackend.model.entity.IpmsSaleBill;
 import com.clarity.ipmsbackend.model.vo.salebill.SafeSaleBillVO;
 import com.clarity.ipmsbackend.service.IpmsSaleBillService;
 import io.swagger.annotations.Api;
@@ -78,8 +79,8 @@ public class IpmsSaleBillController {
      * @return
      */
     @GetMapping("/checkSaleBill/{saleBillId}")
-    @ApiOperation("审核销售单据（销售主管）")
-    @AuthCheck(mustRole = UserConstant.SALE_ROLE_SUPER)
+    @ApiOperation("审核销售单据（销售主管），如果是销售出库单和销售退货单那么审核人必须是仓管员")
+    @AuthCheck(anyRole = {UserConstant.SALE_ROLE_SUPER, UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
     public BaseResponse<Integer> checkSaleBill(@PathVariable("saleBillId") long saleBillId, HttpServletRequest request) {
         if (request == null || saleBillId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空或者 id 不合法");
@@ -96,8 +97,8 @@ public class IpmsSaleBillController {
      * @return
      */
     @GetMapping("/reverseCheckSaleBill/{saleBillId}")
-    @ApiOperation("反审核销售单据（销售主管）")
-    @AuthCheck(mustRole = UserConstant.SALE_ROLE_SUPER)
+    @ApiOperation("反审核销售单据（销售主管），如果是销售出库单和销售退货单那么反审核人必须是仓管员")
+    @AuthCheck(anyRole = {UserConstant.SALE_ROLE_SUPER, UserConstant.STORE_ROLE, UserConstant.STORE_ROLE_SUPER})
     public BaseResponse<Integer> reverseCheckSaleBill(@PathVariable("saleBillId") long saleBillId, HttpServletRequest request) {
         if (request == null || saleBillId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空或者 id 不合法");
